@@ -64,7 +64,9 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
 //
 //    }
 
-    if (args.find("device_index") != args.end()) {
+    char manufact[256], product[256], serial[256];
+
+    if (args.count("device_index") != 0) {
         int deviceId_in = std::stoi(args.at("device_index"));
         if (!std::isnan(deviceId_in)) {
             deviceId = deviceId_in;
@@ -74,17 +76,14 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
         }
 
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Using device by parameter device_index = %d", deviceId_in);
-    } else if (args.find("serial") != args.end()) {
+    } else if (args.count("serial") != 0) {
         std::string deviceSerialFind = args.at("serial");
-        char manufact[256], product[256], serial[256];
 
         for (int i = 0; i < rtl_count; i++) {
-            std::string deviceName = rtlsdr_get_device_name(i);
-
-            SoapySDR_logf(SOAPY_SDR_DEBUG, "Device #%d: %s", i, deviceName.c_str());
             if (rtlsdr_get_device_usb_strings(i, manufact, product, serial) == 0) {
-                if (serial == deviceSerialFind) {
-                    SoapySDR_logf(SOAPY_SDR_DEBUG, "Found RTL-SDR Device #%d by serial -- Manufacturer: %s, Product Name: %s, Serial: %s", manufact, product, serial);
+                std::string deviceName = std::string(rtlsdr_get_device_name(i)) + " :: " + std::string(serial);
+                if (std::string(serial) == deviceSerialFind) {
+                    SoapySDR_logf(SOAPY_SDR_DEBUG, "Found RTL-SDR Device #%d by serial %s -- Manufacturer: %s, Product Name: %s, Serial: %s", i, deviceSerialFind.c_str(), manufact, product, serial);
                     deviceId = i;
                     break;
                 }
@@ -94,14 +93,16 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
         if (deviceId == -1) {
             throw std::runtime_error("Unable to find requested RTL-SDR device by serial.");
         }
-    } else if (args.find("label") != args.end()) {
+    } else if (args.count("label") != 0) {
         std::string labelFind = args.at("label");
         for (int i = 0; i < rtl_count; i++) {
-            std::string deviceName = rtlsdr_get_device_name(i);
-            if (deviceName == labelFind) {
-                SoapySDR_logf(SOAPY_SDR_DEBUG, "Found RTL-SDR Device #%d by name: %s", deviceName.c_str());
-                deviceId = i;
-                break;
+            if (rtlsdr_get_device_usb_strings(i, manufact, product, serial) == 0) {
+                std::string deviceName = std::string(rtlsdr_get_device_name(i)) + " :: " + std::string(serial);
+                if (deviceName == labelFind) {
+                    SoapySDR_logf(SOAPY_SDR_DEBUG, "Found RTL-SDR Device #%d by name: %s", deviceName.c_str());
+                    deviceId = i;
+                    break;
+                }
             }
         }
 

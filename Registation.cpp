@@ -10,11 +10,6 @@ static std::vector<SoapySDR::Kwargs> findRTLSDR(const SoapySDR::Kwargs &args)
 {
     std::vector<SoapySDR::Kwargs> results;
 
-    //TODO filtering
-    //when the user passes input args like a serial number
-    //or identification number. Use this information
-    //to filter the results when the specified keys do not match
-
     char manufact[256], product[256], serial[256];
 
     int rtl_count = rtlsdr_get_device_count();
@@ -74,8 +69,30 @@ static std::vector<SoapySDR::Kwargs> findRTLSDR(const SoapySDR::Kwargs &args)
             SoapySDR_logf(SOAPY_SDR_DEBUG, "\tUnable to access device #%d (in use?)", i);
         }
 
+        std::string deviceLabel = std::string(rtlsdr_get_device_name(i)) + " :: " + deviceSerial;
+
+        //filtering
+        if (args.count("device_index") != 0) {
+            int deviceId_in = std::stoi(args.at("device_index"));
+            if (deviceId_in != i) {
+                continue;
+            }
+        } else if (args.count("serial") != 0) {
+            std::string deviceSerialFind = args.at("serial");
+
+            if (std::string(serial) != deviceSerialFind) {
+                continue;
+            }
+        } else if (args.count("label") != 0) {
+            std::string labelFind = args.at("label");
+            if (deviceLabel == labelFind) {
+                SoapySDR_logf(SOAPY_SDR_DEBUG, "Found RTL-SDR Device #%d by name: %s", deviceName.c_str());
+                break;
+            }
+        }
+
         devInfo["device_index"] = std::to_string(i);
-        devInfo["label"] = rtlsdr_get_device_name(i);
+        devInfo["label"] = deviceLabel;
         devInfo["available"] = deviceAvailable?"Yes":"No";
         devInfo["product"] = deviceProduct;
         devInfo["serial"] = deviceSerial;
