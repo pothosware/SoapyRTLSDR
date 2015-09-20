@@ -5,7 +5,7 @@
 
 #include "SoapyRTLSDR.hpp"
 
-#define DEFAULT_BUFFER_SIZE 16384*6
+#define DEFAULT_BUFFER_SIZE (16384*6)
 
 
 SoapySDR::Stream *SoapyRTLSDR::setupStream(
@@ -45,16 +45,6 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
        throw std::runtime_error("setupStream invalid format '" + format + "' -- Only C8, CS16, CF16 and CF32 are supported by SoapyRTLSDR, and CS8 is the native format.");
    }
 
-   if (args.find("device_index") != args.end()) {
-       int index_in = std::stoi(args.at("device_index"));
-       if (!std::isnan(index_in) && index_in) {
-           deviceId = index_in;
-       }
-   } else {
-       deviceId = 0;
-   }
-   SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using device #%d", deviceId);
-
    if (args.find("buffer_size") != args.end()) {
        int bufferSize_in = std::stoi(args.at("buffer_size"));
        if (!std::isnan(bufferSize_in) && bufferSize_in) {
@@ -65,7 +55,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
    }
    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using buffer size %d", bufferSize);
 
-      if (args.find("direct_sampling_mode") != args.end()) {
+  if (args.find("direct_sampling_mode") != args.end()) {
        int directSamplingMode_in = std::stoi(args.at("direct_sampling_mode"));
        if (!std::isnan(directSamplingMode_in)) {
            if (directSamplingMode_in >= 0 && directSamplingMode_in <= 2) {
@@ -78,7 +68,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
        newDirectSamplingMode = 0;
    }
    directSamplingModeChanged = true;
-   SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Direct sampling mode %d", newDirectSamplingMode);
+   SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR direct sampling mode %d", newDirectSamplingMode);
 
 
    if (args.find("iq_swap") != args.end()) {
@@ -90,7 +80,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
        iqSwap = 0;
    }
    iqSwapChanged = false;
-   SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR direct sampling mode %d", newDirectSamplingMode);
+   SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR I/Q swap: %s", iqSwap?"Yes":"No");
 
    if (args.find("offset_tuning") != args.end()) {
         int offsetMode_in = std::stoi(args.at("offset_tuning"));
@@ -101,7 +91,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
         newOffsetMode = false;
     }
    offsetModeChanged = true;
-   SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR direct offset_tuning mode: %s", offsetMode?"Yes":"No");
+   SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR offset_tuning mode: %s", offsetMode?"Yes":"No");
 
    if (args.find("ppm") != args.end()) {
        int ppm_in = std::stoi(args.at("ppm"));
@@ -127,7 +117,7 @@ void SoapyRTLSDR::closeStream(SoapySDR::Stream *stream)
 
 size_t SoapyRTLSDR::getStreamMTU(SoapySDR::Stream *stream) const
 {
-    return bufferSize/2;
+    return bufferSize*2;
 }
 
 int SoapyRTLSDR::activateStream(
@@ -137,7 +127,7 @@ int SoapyRTLSDR::activateStream(
     const size_t numElems)
 {
     // Open RTL-SDR device
-     SoapySDR_logf(SOAPY_SDR_DEBUG, "Opening RTL-SDR device");
+     SoapySDR_logf(SOAPY_SDR_DEBUG, "Opening RTL-SDR device %d", deviceId);
      rtlsdr_open(&dev, deviceId);
 
      return 0;
@@ -210,13 +200,16 @@ int SoapyRTLSDR::readStream(
 
 
     // Prevent stalling if we've already buffered enough data..
-    if ((iq_buffer.size()/2) < numElems)
+    while ((iq_buffer.size()/2) < numElems)
     {
         int n_read;
 
         //receive into temporary buffer
         rtlsdr_read_sync(dev, &iq_input[0], bufferSize, &n_read);
 
+        if (!n_read) {
+            return SOAPY_SDR_UNDERFLOW;
+        }
         //was numElems < than the hardware transfer size?
         //may have to keep part of that temporary buffer
         //around for the next call into readStream...

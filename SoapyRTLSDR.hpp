@@ -141,7 +141,6 @@ public:
 
 private:
 
-
     //device handle
     int deviceId;
     rtlsdr_dev_t *dev;
@@ -170,4 +169,8 @@ private:
     std::vector<std::complex<float> > _lut_swap_32f;
     std::vector<std::complex<short int> > _lut_16i;
     std::vector<std::complex<short int> > _lut_swap_16i;
+
+public:
+    static int rtl_count;
+    static std::vector< SoapySDR::Kwargs > rtl_devices;
 };

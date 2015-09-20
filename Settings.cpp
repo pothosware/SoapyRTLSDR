@@ -5,6 +5,10 @@
 
 #include "SoapyRTLSDR.hpp"
 
+
+int SoapyRTLSDR::rtl_count;
+std::vector< SoapySDR::Kwargs > SoapyRTLSDR::rtl_devices;
+
 SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
 {
     // create lookup tables
@@ -51,9 +55,7 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
     ppm = newPpm = 0;
     ppmChanged = false;
 
-    int rtl_count = rtlsdr_get_device_count();
-
-    if (!rtl_count) {
+    if (!SoapyRTLSDR::rtl_count) {
         throw std::runtime_error("RTL-SDR device not found.");
     }
 
@@ -64,29 +66,25 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
 //
 //    }
 
-    char manufact[256], product[256], serial[256];
-
     if (args.count("device_index") != 0) {
         int deviceId_in = std::stoi(args.at("device_index"));
         if (!std::isnan(deviceId_in)) {
             deviceId = deviceId_in;
         }
-        if (deviceId < 0 && deviceId >= rtl_count) {
-            throw std::runtime_error("device_index out of range [0 .. " + std::to_string(rtl_count) + "].");
+        if (deviceId < 0 && deviceId >= SoapyRTLSDR::rtl_count) {
+            throw std::runtime_error("device_index out of range [0 .. " + std::to_string(SoapyRTLSDR::rtl_count) + "].");
         }
 
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Using device by parameter device_index = %d", deviceId_in);
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Using device by parameter device_index = %d", deviceId);
     } else if (args.count("serial") != 0) {
         std::string deviceSerialFind = args.at("serial");
 
-        for (int i = 0; i < rtl_count; i++) {
-            if (rtlsdr_get_device_usb_strings(i, manufact, product, serial) == 0) {
-                std::string deviceName = std::string(rtlsdr_get_device_name(i)) + " :: " + std::string(serial);
-                if (std::string(serial) == deviceSerialFind) {
-                    SoapySDR_logf(SOAPY_SDR_DEBUG, "Found RTL-SDR Device #%d by serial %s -- Manufacturer: %s, Product Name: %s, Serial: %s", i, deviceSerialFind.c_str(), manufact, product, serial);
-                    deviceId = i;
-                    break;
-                }
+        for (int i = 0; i < SoapyRTLSDR::rtl_count; i++) {
+            SoapySDR::Kwargs devInfo = SoapyRTLSDR::rtl_devices[i];
+            if (devInfo.at("serial") == deviceSerialFind) {
+                SoapySDR_logf(SOAPY_SDR_DEBUG, "Found RTL-SDR Device #%d by serial %s -- Manufacturer: %s, Product Name: %s, Serial: %s", i, deviceSerialFind.c_str(), devInfo.at("manufacturer").c_str(), devInfo.at("product").c_str(), devInfo.at("serial").c_str());
+                deviceId = i;
+                break;
             }
         }
 
@@ -95,14 +93,12 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
         }
     } else if (args.count("label") != 0) {
         std::string labelFind = args.at("label");
-        for (int i = 0; i < rtl_count; i++) {
-            if (rtlsdr_get_device_usb_strings(i, manufact, product, serial) == 0) {
-                std::string deviceName = std::string(rtlsdr_get_device_name(i)) + " :: " + std::string(serial);
-                if (deviceName == labelFind) {
-                    SoapySDR_logf(SOAPY_SDR_DEBUG, "Found RTL-SDR Device #%d by name: %s", deviceName.c_str());
-                    deviceId = i;
-                    break;
-                }
+        for (int i = 0; i < SoapyRTLSDR::rtl_count; i++) {
+            SoapySDR::Kwargs devInfo = SoapyRTLSDR::rtl_devices[i];
+            if (devInfo.at("label") == labelFind) {
+                SoapySDR_logf(SOAPY_SDR_DEBUG, "Found RTL-SDR Device #%d by name: %s", devInfo.at("label").c_str());
+                deviceId = i;
+                break;
             }
         }
 
@@ -112,8 +108,8 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
     }
 
     if (deviceId == -1) {
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Using first RTL-SDR Device #0: %s", rtlsdr_get_device_name(0));
         deviceId = 0;
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Using first RTL-SDR Device #0: %s", SoapyRTLSDR::rtl_devices[deviceId].at("label").c_str());
     }
 }
 
@@ -232,7 +228,8 @@ std::vector<std::string> SoapyRTLSDR::listGains(const int direction, const size_
 
 void SoapyRTLSDR::setGainMode(const int direction, const size_t channel, const bool automatic)
 {
-    agcMode = automatic;
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "Changing gain mode to %s", automatic?"Automatic":"Manual");
+    newAgcMode = automatic;
     agcModeChanged = true;
 }
 
@@ -292,6 +289,11 @@ void SoapyRTLSDR::setFrequency(const int direction, const size_t channel, const 
         newCenterFrequency = (uint32_t)frequency;
         centerFrequencyChanged = true;
     }
+
+    if (name == "CORR") {
+        newPpm = (int)frequency;
+        ppmChanged = true;
+    }
 }
 
 double SoapyRTLSDR::getFrequency(const int direction, const size_t channel, const std::string &name) const
@@ -302,6 +304,14 @@ double SoapyRTLSDR::getFrequency(const int direction, const size_t channel, cons
             return (double)newCenterFrequency;
         }
         return (double)centerFrequency;
+    }
+
+    if (name == "CORR")
+    {
+        if (ppmChanged) {
+            return (double)newPpm;
+        }
+        return (double)ppm;
     }
 
     return 0;
