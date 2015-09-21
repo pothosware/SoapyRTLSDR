@@ -14,31 +14,6 @@ double SoapyRTLSDR::gainMax;
 
 SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
 {
-    // create lookup tables
-    for (unsigned int i = 0; i <= 0xffff; i++) {
-# if (__BYTE_ORDER == __LITTLE_ENDIAN)
-        std::complex<float> v32f, vs32f;
-
-        v32f.real((float(i & 0xff) - 127.4f) * (1.0f/128.0f));
-        v32f.imag((float(i >> 8) - 127.4f) * (1.0f/128.0f));
-        _lut_32f.push_back(v32f);
-
-        vs32f.real(v32f.imag());
-        vs32f.imag(v32f.real());
-        _lut_swap_32f.push_back(vs32f);
-
-
-        // TODO: unsigned short
-
-#else // BIG_ENDIAN
-    #error  TODO
-    //        tmp_swap.imag = tmp.real = (float(i >> 8) - 127.4f) * (1.0f/128.0f);
-    //        tmp_swap.real = tmp.imag = (float(i & 0xff) - 127.4f) * (1.0f/128.0f);
-    //        _lut.push_back(tmp);
-    //        _lut_swap.push_back(tmp_swap);
-#endif
-    }
-
     offsetModeChanged = false;
     offsetMode = newOffsetMode = 0;
     iqSwap = false;

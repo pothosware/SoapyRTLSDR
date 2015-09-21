@@ -9,7 +9,7 @@
 #include <SoapySDR/Logger.h>
 #include <rtl-sdr.h>
 
-typedef enum rtlsdrRXFormat { RTL_RX_FORMAT_FLOAT32, RTL_RX_FORMAT_FLOAT16, RTL_RX_FORMAT_INT16 } rtlsdrRXFormat;
+typedef enum rtlsdrRXFormat { RTL_RX_FORMAT_FLOAT32, RTL_RX_FORMAT_INT16 } rtlsdrRXFormat;
 
 #define DEFAULT_BUFFER_LENGTH 16384
 #define DEFAULT_NUM_BUFFERS 16
@@ -173,8 +173,8 @@ private:
 
     std::vector<std::complex<float> > _lut_32f;
     std::vector<std::complex<float> > _lut_swap_32f;
-    std::vector<std::complex<short int> > _lut_16i;
-    std::vector<std::complex<short int> > _lut_swap_16i;
+    std::vector<std::complex<int16_t> > _lut_16i;
+    std::vector<std::complex<int16_t> > _lut_swap_16i;
 
 public:
     static int rtl_count;
