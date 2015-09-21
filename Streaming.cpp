@@ -5,9 +5,6 @@
 
 #include "SoapyRTLSDR.hpp"
 
-#define DEFAULT_BUFFER_SIZE (16384*6)
-
-
 SoapySDR::Stream *SoapyRTLSDR::setupStream(
     const int direction,
     const std::string &format,
@@ -45,66 +42,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
        throw std::runtime_error("setupStream invalid format '" + format + "' -- Only C8, CS16, CF16 and CF32 are supported by SoapyRTLSDR, and CS8 is the native format.");
    }
 
-   if (args.find("buffer_size") != args.end()) {
-       int bufferSize_in = std::stoi(args.at("buffer_size"));
-       if (!std::isnan(bufferSize_in) && bufferSize_in) {
-           bufferSize = bufferSize_in;
-       }
-   } else {
-       bufferSize = DEFAULT_BUFFER_SIZE;
-   }
-   SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using buffer size %d", bufferSize);
-
-  if (args.find("direct_sampling_mode") != args.end()) {
-       int directSamplingMode_in = std::stoi(args.at("direct_sampling_mode"));
-       if (!std::isnan(directSamplingMode_in)) {
-           if (directSamplingMode_in >= 0 && directSamplingMode_in <= 2) {
-               newDirectSamplingMode = directSamplingMode_in;
-           } else {
-               throw std::runtime_error("direct_sampling_mode " + std::to_string(directSamplingMode_in) + " invalid.  0 = off, 1 = I ADC, 2 = Q ADC");
-           }
-       }
-   } else {
-       newDirectSamplingMode = 0;
-   }
-   directSamplingModeChanged = true;
-   SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR direct sampling mode %d", newDirectSamplingMode);
-
-
-   if (args.find("iq_swap") != args.end()) {
-       int iqSwap_in = std::stoi(args.at("iq_swap"));
-       if (!std::isnan(iqSwap_in)) {
-           iqSwap = iqSwap_in?true:false;
-       }
-   } else {
-       iqSwap = 0;
-   }
-   iqSwapChanged = false;
-   SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR I/Q swap: %s", iqSwap?"Yes":"No");
-
-   if (args.find("offset_tuning") != args.end()) {
-        int offsetMode_in = std::stoi(args.at("offset_tuning"));
-        if (!std::isnan(offsetMode_in)) {
-            newOffsetMode = offsetMode_in?true:false;
-        }
-    } else {
-        newOffsetMode = false;
-    }
-   offsetModeChanged = true;
-   SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR offset_tuning mode: %s", offsetMode?"Yes":"No");
-
-   if (args.find("ppm") != args.end()) {
-       int ppm_in = std::stoi(args.at("ppm"));
-       if (!std::isnan(ppm_in)) {
-           newPpm = ppm_in;
-       }
-   } else {
-       newPpm = 0;
-   }
-   ppmChanged = true;
-   SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR PPM: %d", newPpm);
-
-
+   bufferSize = bufferLength * numBuffers;
    iq_input.resize(bufferSize);
 
    return (SoapySDR::Stream *)this;
@@ -117,7 +55,7 @@ void SoapyRTLSDR::closeStream(SoapySDR::Stream *stream)
 
 size_t SoapyRTLSDR::getStreamMTU(SoapySDR::Stream *stream) const
 {
-    return bufferSize*2;
+    return bufferSize/2;
 }
 
 int SoapyRTLSDR::activateStream(
@@ -200,12 +138,18 @@ int SoapyRTLSDR::readStream(
 
 
     // Prevent stalling if we've already buffered enough data..
-    while ((iq_buffer.size()/2) < numElems)
+    if ((iq_buffer.size()/2) < numElems)
     {
-        int n_read;
+        int n_read = 0;
 
-        //receive into temporary buffer
-        rtlsdr_read_sync(dev, &iq_input[0], bufferSize, &n_read);
+//        for (int i = 0; i < numBuffers; i++) {
+//            //receive into temporary buffer
+//            int buf_read;
+//            rtlsdr_read_sync(dev, &iq_input[n_read], bufferLength, &buf_read);
+//            n_read += buf_read;
+//        }
+
+        rtlsdr_read_sync(dev, &iq_input[0], bufferLength*numBuffers, &n_read);
 
         if (!n_read) {
             return SOAPY_SDR_UNDERFLOW;

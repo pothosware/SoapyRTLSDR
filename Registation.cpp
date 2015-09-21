@@ -78,7 +78,7 @@ static std::vector<SoapySDR::Kwargs> findRTLSDR(const SoapySDR::Kwargs &args)
             std::string deviceLabel = std::string(rtlsdr_get_device_name(i)) + " :: " + deviceSerial;
 
 
-            devInfo["device_index"] = std::to_string(i);
+            devInfo["rtl"] = std::to_string(i);
             devInfo["label"] = deviceLabel;
             devInfo["available"] = deviceAvailable?"Yes":"No";
             devInfo["product"] = deviceProduct;
@@ -89,16 +89,14 @@ static std::vector<SoapySDR::Kwargs> findRTLSDR(const SoapySDR::Kwargs &args)
         }
     }
 
-
-
     //filtering
     for (int i = 0; i < SoapyRTLSDR::rtl_count; i++) {
         SoapySDR::Kwargs devInfo = SoapyRTLSDR::rtl_devices[i];
-        if (args.count("device_index") != 0) {
-            if (args.at("device_index") != devInfo.at("device_index")) {
+        if (args.count("rtl") != 0) {
+            if (args.at("rtl") != devInfo.at("rtl")) {
                 continue;
             }
-            SoapySDR_logf(SOAPY_SDR_DEBUG, "Found device by index %s", devInfo.at("device_index").c_str());
+            SoapySDR_logf(SOAPY_SDR_DEBUG, "Found device by index %s", devInfo.at("rtl").c_str());
         } else if (args.count("serial") != 0) {
             if (devInfo.at("serial") != args.at("serial")) {
                 continue;

@@ -50,7 +50,9 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
     centerFrequencyChanged = true;
     sampleRate = newSampleRate = 2048000;
     sampleRateChanged = true;
-    bufferSize = 16384*6;
+    bufferLength = DEFAULT_BUFFER_LENGTH;
+    numBuffers = DEFAULT_NUM_BUFFERS;
+    bufferSize = bufferLength*numBuffers;
     deviceId = -1;
     ppm = newPpm = 0;
     ppmChanged = false;
@@ -61,21 +63,21 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
 
     deviceId = -1;
 
-//    for (SoapySDR::Kwargs::const_iterator i = args.begin(); i != args.end(); i++) {
-//        SoapySDR_logf(SOAPY_SDR_DEBUG, "\t [%s == %s]", i->first.c_str(), i->second.c_str());
-//
-//    }
+    for (SoapySDR::Kwargs::const_iterator i = args.begin(); i != args.end(); i++) {
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "\t [%s == %s]", i->first.c_str(), i->second.c_str());
 
-    if (args.count("device_index") != 0) {
-        int deviceId_in = std::stoi(args.at("device_index"));
+    }
+
+    if (args.count("rtl") != 0) {
+        int deviceId_in = std::stoi(args.at("rtl"));
         if (!std::isnan(deviceId_in)) {
             deviceId = deviceId_in;
         }
         if (deviceId < 0 && deviceId >= SoapyRTLSDR::rtl_count) {
-            throw std::runtime_error("device_index out of range [0 .. " + std::to_string(SoapyRTLSDR::rtl_count) + "].");
+            throw std::runtime_error("rtl out of range [0 .. " + std::to_string(SoapyRTLSDR::rtl_count) + "].");
         }
 
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Using device by parameter device_index = %d", deviceId);
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Using device by parameter rtl = %d", deviceId);
     } else if (args.count("serial") != 0) {
         std::string deviceSerialFind = args.at("serial");
 
@@ -111,6 +113,76 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
         deviceId = 0;
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Using first RTL-SDR Device #0: %s", SoapyRTLSDR::rtl_devices[deviceId].at("label").c_str());
     }
+
+    if (args.count("buflen") != 0) {
+         int bufferLength_in = std::stoi(args.at("buflen"));
+         if (!std::isnan(bufferLength_in) && bufferLength_in) {
+             bufferLength = bufferLength_in;
+         }
+     } else {
+         bufferLength = DEFAULT_BUFFER_LENGTH;
+     }
+     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using buffer length %d", bufferLength);
+
+     if (args.count("buffers") != 0) {
+         int numBuffers_in = std::stoi(args.at("buffers"));
+         if (!std::isnan(numBuffers_in) && numBuffers_in) {
+             numBuffers = numBuffers_in;
+         }
+     } else {
+         numBuffers = DEFAULT_NUM_BUFFERS;
+     }
+     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using %d buffers", numBuffers);
+
+    if (args.count("direct_samp") != 0) {
+         int directSamplingMode_in = std::stoi(args.at("direct_samp"));
+         if (!std::isnan(directSamplingMode_in)) {
+             if (directSamplingMode_in >= 0 && directSamplingMode_in <= 2) {
+                 newDirectSamplingMode = directSamplingMode_in;
+             } else {
+                 throw std::runtime_error("direct_samp " + std::to_string(directSamplingMode_in) + " invalid.  0 = off, 1 = I ADC, 2 = Q ADC");
+             }
+         }
+     } else {
+         newDirectSamplingMode = 0;
+     }
+     directSamplingModeChanged = true;
+     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR direct sampling mode %d", newDirectSamplingMode);
+
+
+     if (args.count("iq_swap") != 0) {
+         int iqSwap_in = std::stoi(args.at("iq_swap"));
+         if (!std::isnan(iqSwap_in)) {
+             iqSwap = iqSwap_in?true:false;
+         }
+     } else {
+         iqSwap = 0;
+     }
+     iqSwapChanged = false;
+     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR I/Q swap: %s", iqSwap?"Yes":"No");
+
+     if (args.count("offset_tune") != 0) {
+          int offsetMode_in = std::stoi(args.at("offset_tune"));
+          if (!std::isnan(offsetMode_in)) {
+              newOffsetMode = offsetMode_in?true:false;
+          }
+      } else {
+          newOffsetMode = false;
+      }
+     offsetModeChanged = true;
+     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR offset_tune mode: %s", offsetMode?"Yes":"No");
+
+     if (args.count("ppm") != 0) {
+         int ppm_in = std::stoi(args.at("ppm"));
+         if (!std::isnan(ppm_in)) {
+             newPpm = ppm_in;
+         }
+     } else {
+         newPpm = 0;
+     }
+     ppmChanged = true;
+     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR PPM: %d", newPpm);
+
 }
 
 SoapyRTLSDR::~SoapyRTLSDR(void)
@@ -138,15 +210,18 @@ SoapySDR::Kwargs SoapyRTLSDR::getHardwareInfo(void) const
     //this also gets printed in --probe
     SoapySDR::Kwargs args;
 
-    args["direct_sampling_mode"] = std::to_string(directSamplingMode);
-    args["offset_tuning"] = offsetMode?"1":"0";
+    args["rtl"] =
+    args["direct_samp"] = std::to_string(directSamplingMode);
+    args["offset_tune"] = offsetMode?"1":"0";
     args["iq_swap"] = iqSwap?"1":"0";
-    args["buffer_size"] = std::to_string(bufferSize);
+    args["num_buffers"] = std::to_string(numBuffers);
+    args["buflen"] = std::to_string(bufferLength);
     args["ppm"] = std::to_string(ppm);
     args["_help"] = "SoapyRTLSDR Driver\n Address:\t https://github.com/pothosware/SoapyRTLSDR\n\
- Buffer Size\t [buffer_size]: default " + std::to_string(16384*6) + " (16384*6)\n\
- Direct Sampling [direct_sampling_mode]: 0 = Off, 1 = I ADC, 2 = Q ADC\n\
- Offset Tuning\t [offset_tuning]: 0 = Off, 1 = On\n\
+ Buffer Size\t [bufflen]: default " + std::to_string(16384) + "\n\
+ Buffer Count\t [buffers]: default " + std::to_string(16) + "\n\
+ Direct Sampling [direct_samp]: 0 = Off, 1 = I ADC, 2 = Q ADC\n\
+ Offset Tuning\t [offset_tune]: 0 = Off, 1 = On\n\
  Swap I/Q\t [iq_swap]: 0 = Off, 1 = On\n\
  PPM Offset\t [ppm]: Default 0 (parts per million)\n";
 

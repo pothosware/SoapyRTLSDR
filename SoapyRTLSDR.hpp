@@ -11,6 +11,9 @@
 
 typedef enum rtlsdrRXFormat { RTL_RX_FORMAT_FLOAT32, RTL_RX_FORMAT_FLOAT16, RTL_RX_FORMAT_INT16 } rtlsdrRXFormat;
 
+#define DEFAULT_BUFFER_LENGTH 16384
+#define DEFAULT_NUM_BUFFERS 16
+
 class SoapyRTLSDR : public SoapySDR::Device
 {
 public:
@@ -148,7 +151,7 @@ private:
     //cached settings
     rtlsdrRXFormat rxFormat;
     uint32_t sampleRate, centerFrequency;
-    int ppm, directSamplingMode, bufferSize;
+    int ppm, directSamplingMode, bufferSize, numBuffers, bufferLength;
     bool iqSwap, agcMode, offsetMode;
 
     //next state
