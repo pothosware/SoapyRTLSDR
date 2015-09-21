@@ -135,12 +135,16 @@ int SoapyRTLSDR::readStream(
     if (IFGainChanged) {
         IFGain = newIFGain;
         IFGainChanged = false;
+
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR IF Gain: %f", IFGain);
         rtlsdr_set_tuner_if_gain(dev, 0, (int)IFGain*10.0);
     }
 
     if (tunerGainChanged) {
         tunerGain = newTunerGain;
         tunerGainChanged = false;
+
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR Tuner Gain: %f", tunerGain);
         rtlsdr_set_tuner_gain(dev, (int)tunerGain*10.0);
     }
 
