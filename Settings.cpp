@@ -8,6 +8,9 @@
 
 int SoapyRTLSDR::rtl_count;
 std::vector< SoapySDR::Kwargs > SoapyRTLSDR::rtl_devices;
+double SoapyRTLSDR::gainMin;
+double SoapyRTLSDR::gainMax;
+
 
 SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
 {
@@ -56,6 +59,10 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
     deviceId = -1;
     ppm = newPpm = 0;
     ppmChanged = false;
+    IFGainChanged = false;
+    IFGain = newIFGain = 0;
+    tunerGainChanged = false;
+    tunerGain = newTunerGain = 0;
 
     if (!SoapyRTLSDR::rtl_count) {
         throw std::runtime_error("RTL-SDR device not found.");
@@ -280,23 +287,9 @@ std::vector<std::string> SoapyRTLSDR::listGains(const int direction, const size_
     //list available gain elements,
     //the functions below have a "name" parameter
     std::vector<std::string> results;
-    /*
-        int num_gains = rtlsdr_get_tuner_gains(dev, NULL);
 
-        int *gains = (int *)malloc(sizeof(int) * num_gains);
-        rtlsdr_get_tuner_gains(dev, gains);
-
-        std::cout << "\t Valid gains: ";
-        for (int g = 0; g < num_gains; g++) {
-        if (g > 0) {
-        std::cout << ", ";
-        }
-        std::cout << ((float)gains[g]/10.0f);
-        }
-        std::cout << std::endl;
-
-        free(gains);
-     */
+    results.push_back("IF");
+    results.push_back("TUNER");
 
     return results;
 }
@@ -322,35 +315,39 @@ void SoapyRTLSDR::setGain(const int direction, const size_t channel, const doubl
 
 void SoapyRTLSDR::setGain(const int direction, const size_t channel, const std::string &name, const double value)
 {
-    SoapySDR::Device::setGain(direction,channel,name,value);
+    if (name == "IF") {
+        newIFGain = value;
+        IFGainChanged = true;
+    }
+
+    if (name == "TUNER") {
+        newTunerGain = value;
+        tunerGainChanged = true;
+    }
 }
 
 double SoapyRTLSDR::getGain(const int direction, const size_t channel, const std::string &name) const
 {
-    return SoapySDR::Device::getGain(direction,channel,name);
+    if (name == "IF") {
+        if (IFGainChanged) {
+            return newIFGain;
+        }
+        return IFGain;
+    }
+
+    if (name == "TUNER") {
+        if (tunerGainChanged) {
+            return newTunerGain;
+        }
+        return tunerGain;
+    }
+
+    return 0;
 }
 
 SoapySDR::Range SoapyRTLSDR::getGainRange(const int direction, const size_t channel, const std::string &name) const
 {
-    return SoapySDR::Device::getGainRange(direction,channel,name);
-
-    /*
-        int num_gains = rtlsdr_get_tuner_gains(dev, NULL);
-
-        int *gains = (int *)malloc(sizeof(int) * num_gains);
-        rtlsdr_get_tuner_gains(dev, gains);
-
-        std::cout << "\t Valid gains: ";
-        for (int g = 0; g < num_gains; g++) {
-        if (g > 0) {
-        std::cout << ", ";
-        }
-        std::cout << ((float)gains[g]/10.0f);
-        }
-        std::cout << std::endl;
-
-        free(gains);
-     */
+    return SoapySDR::Range(SoapyRTLSDR::gainMin, SoapyRTLSDR::gainMax);
 }
 
 /*******************************************************************

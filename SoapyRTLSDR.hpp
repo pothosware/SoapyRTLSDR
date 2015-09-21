@@ -153,16 +153,19 @@ private:
     uint32_t sampleRate, centerFrequency;
     int ppm, directSamplingMode, bufferSize, numBuffers, bufferLength;
     bool iqSwap, agcMode, offsetMode;
+    double IFGain, tunerGain;
 
     //next state
     uint32_t newSampleRate, newCenterFrequency;
     int newPpm, newDirectSamplingMode;
     bool newAgcMode, newOffsetMode;
+    double newIFGain, newTunerGain;
 
     // state change
     bool sampleRateChanged, centerFrequencyChanged, ppmChanged;
     bool iqSwapChanged, directSamplingModeChanged, agcModeChanged;
     bool offsetModeChanged;
+    bool IFGainChanged, tunerGainChanged;
 
     // buffers
     std::vector<signed char> iq_input;
@@ -176,4 +179,5 @@ private:
 public:
     static int rtl_count;
     static std::vector< SoapySDR::Kwargs > rtl_devices;
+    static double gainMin, gainMax;
 };

@@ -44,6 +44,28 @@ static std::vector<SoapySDR::Kwargs> findRTLSDR(const SoapySDR::Kwargs &args)
                 rtlsdr_dev_t *devTest;
                 rtlsdr_open(&devTest, i);
 
+                if (!SoapyRTLSDR::gainMax) {
+                    int num_gains = rtlsdr_get_tuner_gains(devTest, NULL);
+                    int *gains = (int *)malloc(sizeof(int) * num_gains);
+
+                    num_gains = rtlsdr_get_tuner_gains(devTest, gains);
+
+                    int rangeMin = gains[0], rangeMax = gains[0];
+
+                    for (int g = 0; g < num_gains; g++) {
+                        if (gains[g] < rangeMin) {
+                            rangeMin = gains[g];
+                        }
+                        if (gains[g] > rangeMax) {
+                            rangeMax = gains[g];
+                        }
+                    }
+                    free(gains);
+
+                    SoapyRTLSDR::gainMin = (double)rangeMin/10.0;
+                    SoapyRTLSDR::gainMax = (double)rangeMax/10.0;
+                }
+
                 switch (rtlsdr_get_tuner_type(devTest)) {
                 case RTLSDR_TUNER_UNKNOWN:
                     deviceTuner = "Unknown";

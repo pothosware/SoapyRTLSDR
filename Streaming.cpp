@@ -132,6 +132,18 @@ int SoapyRTLSDR::readStream(
         rtlsdr_set_offset_tuning(dev, offsetMode?1:0);
     }
 
+    if (IFGainChanged) {
+        IFGain = newIFGain;
+        IFGainChanged = false;
+        rtlsdr_set_tuner_if_gain(dev, 0, (int)IFGain*10.0);
+    }
+
+    if (tunerGainChanged) {
+        tunerGain = newTunerGain;
+        tunerGainChanged = false;
+        rtlsdr_set_tuner_gain(dev, (int)tunerGain*10.0);
+    }
+
     if (resetBuffer) {
         rtlsdr_reset_buffer(dev);
     }
