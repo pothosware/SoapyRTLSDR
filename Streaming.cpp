@@ -4,6 +4,7 @@
  */
 
 #include "SoapyRTLSDR.hpp"
+#include <algorithm>
 
 SoapySDR::Stream *SoapyRTLSDR::setupStream(
     const int direction,
@@ -73,7 +74,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
    }
 
    bufferSize = bufferLength * numBuffers;
-   iq_input.resize(bufferSize);
+   iq_buffer.resize(bufferSize);
 
    return (SoapySDR::Stream *)this;
 }
@@ -119,79 +120,71 @@ int SoapyRTLSDR::readStream(
 
     if (resetBuffer) {
         resetBuffer = false;
-        iq_buffer.erase(iq_buffer.begin(), iq_buffer.end());
+        bufferedElems = 0;
         rtlsdr_reset_buffer(dev);
     }
 
-    // Prevent stalling if we've already buffered enough data..
-    if ((iq_buffer.size()/2) < numElems)
+    int n_read = 0;
+
+    //are elements left in the buffer? if not, do a new read.
+    if (bufferedElems == 0)
     {
-        int n_read = 0;
-
-        rtlsdr_read_sync(dev, &iq_input[0], bufferLength*numBuffers, &n_read);
-
-        //was numElems < than the hardware transfer size?
-        //may have to keep part of that temporary buffer
-        //around for the next call into readStream...
-        if (n_read) {
-            iq_buffer.insert(iq_buffer.end(),iq_input.begin(),iq_input.begin()+n_read);
-        }
+        //receive into temp buffer
+        rtlsdr_read_sync(dev, &iq_buffer[0], bufferLength*numBuffers, &n_read);
+        bufferedElems = n_read/2;
+        bufferedElemOffset = 0;
     }
 
-    int numElemsBuffered = iq_buffer.size()/2;
-    int returnedElems = (numElems>numElemsBuffered)?numElemsBuffered:numElems;
-
-    if (!returnedElems) {
-        return 0;
-    }
+    size_t returnedElems = std::min((int)bufferedElems, (int)numElems);
 
     uint16_t idx;
+    int buffer_ofs = (bufferedElemOffset*2);
 
     //convert into user's buff0
     if (rxFormat == RTL_RX_FORMAT_FLOAT32)
     {
         float *ftarget = (float *)buff0;
+        std::complex<float> tmp;
         if (iqSwap) {
             for (int i = 0; i < returnedElems; i++)
             {
-                idx = *((uint16_t*)&iq_buffer[2*i]);
-                ftarget[i*2] = _lut_swap_32f[idx].real();
-                ftarget[i*2+1] = _lut_swap_32f[idx].imag();
+                tmp = _lut_swap_32f[*((uint16_t*)&iq_buffer[buffer_ofs+2*i])];
+                ftarget[i*2] = tmp.real();
+                ftarget[i*2+1] = tmp.imag();
             }
         } else {
             for (int i = 0; i < returnedElems; i++)
             {
-                idx = *((uint16_t*)&iq_buffer[2*i]);
-                ftarget[i*2] = _lut_32f[idx].real();
-                ftarget[i*2+1] = _lut_32f[idx].imag();
+                tmp = _lut_32f[*((uint16_t*)&iq_buffer[buffer_ofs+2*i])];
+                ftarget[i*2] = tmp.real();
+                ftarget[i*2+1] = tmp.imag();
             }
         }
     }
     else if (rxFormat == RTL_RX_FORMAT_INT16)
     {
         int16_t *itarget = (int16_t *)buff0;
+        std::complex<int16_t> tmp;
         if (iqSwap) {
             for (int i = 0; i < returnedElems; i++)
             {
-                idx = *((uint16_t*)&iq_buffer[2*i]);
-                itarget[i*2] = _lut_swap_16i[idx].real();
-                itarget[i*2+1] = _lut_swap_16i[idx].imag();
+                tmp = _lut_swap_16i[*((uint16_t*)&iq_buffer[buffer_ofs+2*i])];
+                itarget[i*2] = tmp.real();
+                itarget[i*2+1] = tmp.imag();
             }
         } else {
             for (int i = 0; i < returnedElems; i++)
             {
-                idx = *((uint16_t*)&iq_buffer[2*i]);
-                itarget[i*2] = _lut_16i[idx].real();
-                itarget[i*2+1] = _lut_16i[idx].imag();
+                tmp = _lut_16i[*((uint16_t*)&iq_buffer[buffer_ofs+2*i])];
+                itarget[i*2] = tmp.real();
+                itarget[i*2+1] = tmp.imag();
             }
         }
     }
-    else
-    {
-        throw std::runtime_error("Selected format is not yet implmented..");
-    }
 
-    iq_buffer.erase(iq_buffer.begin(),iq_buffer.begin()+(returnedElems*2));
+    //bump variables for next call into readStream
+    bufferedElems -= returnedElems;
+    bufferedElemOffset += returnedElems;
 
     //return number of elements written to buff0
     return returnedElems;

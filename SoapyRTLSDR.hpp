@@ -157,13 +157,14 @@ private:
 
     // buffers
     bool resetBuffer;
-    std::vector<signed char> iq_input;
     std::vector<signed char> iq_buffer;
 
     std::vector<std::complex<float> > _lut_32f;
     std::vector<std::complex<float> > _lut_swap_32f;
     std::vector<std::complex<int16_t> > _lut_16i;
     std::vector<std::complex<int16_t> > _lut_swap_16i;
+
+    int bufferedElems, bufferedElemOffset;
 
 public:
     static int rtl_count;
