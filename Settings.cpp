@@ -37,10 +37,9 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
 
     deviceId = -1;
 
-    for (SoapySDR::Kwargs::const_iterator i = args.begin(); i != args.end(); i++) {
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "\t [%s == %s]", i->first.c_str(), i->second.c_str());
-
-    }
+//    for (SoapySDR::Kwargs::const_iterator i = args.begin(); i != args.end(); i++) {
+//        SoapySDR_logf(SOAPY_SDR_DEBUG, "\t [%s == %s]", i->first.c_str(), i->second.c_str());
+//    }
 
     if (args.count("rtl") != 0) {
         int deviceId_in = std::stoi(args.at("rtl"));
