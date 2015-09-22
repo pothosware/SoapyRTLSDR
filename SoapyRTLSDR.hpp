@@ -1,8 +1,26 @@
 /*
- * TODO license, copyright, etc
+ * The MIT License (MIT)
  * 
- */
+ * Copyright (c) 2015 Charles J. Cliffe
 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 #pragma once
 
 #include <SoapySDR/Device.hpp>
@@ -42,33 +60,33 @@ public:
      ******************************************************************/
 
     SoapySDR::Stream *setupStream(
-        const int direction,
-        const std::string &format,
-        const std::vector<size_t> &channels = std::vector<size_t>(),
-        const SoapySDR::Kwargs &args = SoapySDR::Kwargs());
+            const int direction,
+            const std::string &format,
+            const std::vector<size_t> &channels = std::vector<size_t>(),
+            const SoapySDR::Kwargs &args = SoapySDR::Kwargs());
 
     void closeStream(SoapySDR::Stream *stream);
 
     size_t getStreamMTU(SoapySDR::Stream *stream) const;
 
     int activateStream(
-        SoapySDR::Stream *stream,
-        const int flags = 0,
-        const long long timeNs = 0,
-        const size_t numElems = 0);
+            SoapySDR::Stream *stream,
+            const int flags = 0,
+            const long long timeNs = 0,
+            const size_t numElems = 0);
 
     int deactivateStream(
-        SoapySDR::Stream *stream,
-        const int flags = 0,
-        const long long timeNs = 0);
+            SoapySDR::Stream *stream,
+            const int flags = 0,
+            const long long timeNs = 0);
 
     int readStream(
-        SoapySDR::Stream *stream,
-        void * const *buffs,
-        const size_t numElems,
-        int &flags,
-        long long &timeNs,
-        const long timeoutUs = 100000);
+            SoapySDR::Stream *stream,
+            void * const *buffs,
+            const size_t numElems,
+            int &flags,
+            long long &timeNs,
+            const long timeoutUs = 100000);
 
     /*******************************************************************
      * Antenna API
@@ -85,16 +103,6 @@ public:
      ******************************************************************/
 
     bool hasDCOffsetMode(const int direction, const size_t channel) const;
-
-//    void setDCOffsetMode(const int direction, const size_t channel, const bool automatic);
-//
-//    bool getDCOffsetMode(const int direction, const size_t channel) const;
-//
-//    bool hasDCOffset(const int direction, const size_t channel) const;
-//
-//    void setDCOffset(const int direction, const size_t channel, const std::complex<double> &offset);
-//
-//    std::complex<double> getDCOffset(const int direction, const size_t channel) const;
 
     /*******************************************************************
      * Gain API
