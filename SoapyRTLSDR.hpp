@@ -155,19 +155,8 @@ private:
     bool iqSwap, agcMode, offsetMode;
     double IFGain, tunerGain;
 
-    //next state
-    uint32_t newSampleRate, newCenterFrequency;
-    int newPpm, newDirectSamplingMode;
-    bool newAgcMode, newOffsetMode;
-    double newIFGain, newTunerGain;
-
-    // state change
-    bool sampleRateChanged, centerFrequencyChanged, ppmChanged;
-    bool iqSwapChanged, directSamplingModeChanged, agcModeChanged;
-    bool offsetModeChanged;
-    bool IFGainChanged, tunerGainChanged;
-
     // buffers
+    bool resetBuffer;
     std::vector<signed char> iq_input;
     std::vector<signed char> iq_buffer;
 

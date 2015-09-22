@@ -14,30 +14,22 @@ double SoapyRTLSDR::gainMax;
 
 SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
 {
-    offsetModeChanged = false;
-    offsetMode = newOffsetMode = 0;
+    offsetMode = 0;
     iqSwap = false;
-    iqSwapChanged = false;
     rxFormat = RTL_RX_FORMAT_FLOAT32;
-    agcMode = newAgcMode = false;
-    agcModeChanged = false;
+    agcMode = false;
     dev = NULL;
-    directSamplingMode = newDirectSamplingMode = 0;
-    directSamplingModeChanged = false;
-    centerFrequency = newCenterFrequency = 100000000;
-    centerFrequencyChanged = true;
-    sampleRate = newSampleRate = 2048000;
-    sampleRateChanged = true;
+    directSamplingMode = 0;
+    centerFrequency = 100000000;
+    sampleRate = 2048000;
     bufferLength = DEFAULT_BUFFER_LENGTH;
     numBuffers = DEFAULT_NUM_BUFFERS;
     bufferSize = bufferLength*numBuffers;
     deviceId = -1;
-    ppm = newPpm = 0;
-    ppmChanged = false;
-    IFGainChanged = false;
-    IFGain = newIFGain = 0;
-    tunerGainChanged = false;
-    tunerGain = newTunerGain = 0;
+    ppm = 0;
+    IFGain = 0;
+    tunerGain = 0;
+    resetBuffer = false;
 
     if (!SoapyRTLSDR::rtl_count) {
         throw std::runtime_error("RTL-SDR device not found.");
@@ -55,11 +47,11 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
         if (!std::isnan(deviceId_in)) {
             deviceId = deviceId_in;
         }
-        if (deviceId < 0 && deviceId >= SoapyRTLSDR::rtl_count) {
-            throw std::runtime_error("rtl out of range [0 .. " + std::to_string(SoapyRTLSDR::rtl_count) + "].");
+        if (deviceId < 0 || deviceId >= SoapyRTLSDR::rtl_count) {
+            throw std::runtime_error("device index 'rtl' out of range [0 .. " + std::to_string(SoapyRTLSDR::rtl_count) + "].");
         }
 
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Using device by parameter rtl = %d", deviceId);
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Found RTL-SDR Device using device index parameter 'rtl' = %d", deviceId);
     } else if (args.count("serial") != 0) {
         std::string deviceSerialFind = args.at("serial");
 
@@ -71,10 +63,6 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
                 break;
             }
         }
-
-        if (deviceId == -1) {
-            throw std::runtime_error("Unable to find requested RTL-SDR device by serial.");
-        }
     } else if (args.count("label") != 0) {
         std::string labelFind = args.at("label");
         for (int i = 0; i < SoapyRTLSDR::rtl_count; i++) {
@@ -85,16 +73,19 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
                 break;
             }
         }
+    }
 
-        if (deviceId == -1) {
-            throw std::runtime_error("Unable to find requested RTL-SDR device by label.");
-        }
+    if (deviceId == -1) {
+        throw std::runtime_error("Unable to find requested RTL-SDR device.");
     }
 
     if (deviceId == -1) {
         deviceId = 0;
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Using first RTL-SDR Device #0: %s", SoapyRTLSDR::rtl_devices[deviceId].at("label").c_str());
     }
+
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR opening device %d", deviceId);
+    rtlsdr_open(&dev, deviceId);
 
     if (args.count("buflen") != 0) {
          int bufferLength_in = std::stoi(args.at("buflen"));
@@ -119,17 +110,11 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
     if (args.count("direct_samp") != 0) {
          int directSamplingMode_in = std::stoi(args.at("direct_samp"));
          if (!std::isnan(directSamplingMode_in)) {
-             if (directSamplingMode_in >= 0 && directSamplingMode_in <= 2) {
-                 newDirectSamplingMode = directSamplingMode_in;
-             } else {
-                 throw std::runtime_error("direct_samp " + std::to_string(directSamplingMode_in) + " invalid.  0 = off, 1 = I ADC, 2 = Q ADC");
-             }
+             directSamplingMode = directSamplingMode_in;
          }
-     } else {
-         newDirectSamplingMode = 0;
      }
-     directSamplingModeChanged = true;
-     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR direct sampling mode %d", newDirectSamplingMode);
+
+     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR direct sampling mode %d", directSamplingMode);
 
 
      if (args.count("iq_swap") != 0) {
@@ -140,35 +125,34 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
      } else {
          iqSwap = 0;
      }
-     iqSwapChanged = false;
      SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR I/Q swap: %s", iqSwap?"Yes":"No");
 
      if (args.count("offset_tune") != 0) {
           int offsetMode_in = std::stoi(args.at("offset_tune"));
           if (!std::isnan(offsetMode_in)) {
-              newOffsetMode = offsetMode_in?true:false;
+              offsetMode = offsetMode_in?true:false;
           }
       } else {
-          newOffsetMode = false;
+          offsetMode = false;
       }
-     offsetModeChanged = true;
      SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR offset_tune mode: %s", offsetMode?"Yes":"No");
+     rtlsdr_set_offset_tuning(dev, offsetMode?1:0);
 
      if (args.count("ppm") != 0) {
          int ppm_in = std::stoi(args.at("ppm"));
          if (!std::isnan(ppm_in)) {
-             newPpm = ppm_in;
+             ppm = ppm_in;
          }
      } else {
-         newPpm = 0;
+         ppm = 0;
      }
-     ppmChanged = true;
-     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR PPM: %d", newPpm);
+     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR PPM: %d", ppm);
 
 }
 
 SoapyRTLSDR::~SoapyRTLSDR(void)
 {
+    rtlsdr_close(dev);
     //cleanup device handles
 }
 
@@ -271,9 +255,9 @@ std::vector<std::string> SoapyRTLSDR::listGains(const int direction, const size_
 
 void SoapyRTLSDR::setGainMode(const int direction, const size_t channel, const bool automatic)
 {
-    SoapySDR_logf(SOAPY_SDR_DEBUG, "Changing gain mode to %s", automatic?"Automatic":"Manual");
-    newAgcMode = automatic;
-    agcModeChanged = true;
+    agcMode = automatic;
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR AGC: %s", automatic?"Automatic":"Manual");
+    rtlsdr_set_agc_mode(dev, agcMode?1:0);
 }
 
 bool SoapyRTLSDR::getGainMode(const int direction, const size_t channel) const
@@ -291,29 +275,25 @@ void SoapyRTLSDR::setGain(const int direction, const size_t channel, const doubl
 void SoapyRTLSDR::setGain(const int direction, const size_t channel, const std::string &name, const double value)
 {
     if (name == "IF") {
-        newIFGain = value;
-        IFGainChanged = true;
+        IFGain = value;
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR IF Gain: %f", IFGain);
+        rtlsdr_set_tuner_if_gain(dev, 0, (int)IFGain*10.0);
     }
 
     if (name == "TUNER") {
-        newTunerGain = value;
-        tunerGainChanged = true;
+        tunerGain = value;
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR Tuner Gain: %f", tunerGain);
+        rtlsdr_set_tuner_gain(dev, (int)tunerGain*10.0);
     }
 }
 
 double SoapyRTLSDR::getGain(const int direction, const size_t channel, const std::string &name) const
 {
     if (name == "IF") {
-        if (IFGainChanged) {
-            return newIFGain;
-        }
         return IFGain;
     }
 
     if (name == "TUNER") {
-        if (tunerGainChanged) {
-            return newTunerGain;
-        }
         return tunerGain;
     }
 
@@ -333,13 +313,15 @@ void SoapyRTLSDR::setFrequency(const int direction, const size_t channel, const 
 {
     if (name == "RF")
     {
-        newCenterFrequency = (uint32_t)frequency;
-        centerFrequencyChanged = true;
+        centerFrequency = (uint32_t)frequency;
+        resetBuffer = true;
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting center freq: %d", centerFrequency);
+        rtlsdr_set_center_freq(dev, centerFrequency);
     }
 
     if (name == "CORR") {
-        newPpm = (int)frequency;
-        ppmChanged = true;
+        ppm = (int)frequency;
+        rtlsdr_set_freq_correction(dev, ppm);
     }
 }
 
@@ -347,17 +329,11 @@ double SoapyRTLSDR::getFrequency(const int direction, const size_t channel, cons
 {
     if (name == "RF")
     {
-        if (centerFrequencyChanged) {
-            return (double)newCenterFrequency;
-        }
         return (double)centerFrequency;
     }
 
     if (name == "CORR")
     {
-        if (ppmChanged) {
-            return (double)newPpm;
-        }
         return (double)ppm;
     }
 
@@ -388,16 +364,14 @@ SoapySDR::RangeList SoapyRTLSDR::getFrequencyRange(const int direction, const si
 
 void SoapyRTLSDR::setSampleRate(const int direction, const size_t channel, const double rate)
 {
-    newSampleRate = rate;
-    sampleRateChanged = true;
+    sampleRate = rate;
+    resetBuffer = true;
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting sample rate: %d", sampleRate);
+    rtlsdr_set_sample_rate(dev, sampleRate);
 }
 
 double SoapyRTLSDR::getSampleRate(const int direction, const size_t channel) const
 {
-    if (sampleRateChanged) {
-        return newSampleRate;
-    }
-    
     return sampleRate;
 }
 

@@ -80,7 +80,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
 
 void SoapyRTLSDR::closeStream(SoapySDR::Stream *stream)
 {
-    rtlsdr_close(dev);
+
 }
 
 size_t SoapyRTLSDR::getStreamMTU(SoapySDR::Stream *stream) const
@@ -94,10 +94,7 @@ int SoapyRTLSDR::activateStream(
     const long long timeNs,
     const size_t numElems)
 {
-    // Open RTL-SDR device
-     SoapySDR_logf(SOAPY_SDR_DEBUG, "Opening RTL-SDR device %d", deviceId);
-     rtlsdr_open(&dev, deviceId);
-
+     resetBuffer = true;
      return 0;
 }
 
@@ -120,97 +117,32 @@ int SoapyRTLSDR::readStream(
     //this is the user's buffer for channel 0
     void *buff0 = buffs[0];
 
-    bool resetBuffer = false;
-
-    if (sampleRateChanged) {
-        sampleRate = newSampleRate;
-        sampleRateChanged = false;
-        resetBuffer = true;
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting sample rate: %d", sampleRate);
-        rtlsdr_set_sample_rate(dev, sampleRate);
-    }
-
-    if (centerFrequencyChanged) {
-        centerFrequency = newCenterFrequency;
-        centerFrequencyChanged = false;
-        resetBuffer = true;
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting center freq: %d", centerFrequency);
-        rtlsdr_set_center_freq(dev, centerFrequency);
-    }
-
-    if (ppmChanged) {
-        ppm = newPpm;
-        ppmChanged = false;
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR ppm: %d", ppm);
-
-        rtlsdr_set_freq_correction(dev, ppm);
-    }
-
-    if (agcModeChanged) {
-        agcMode = newAgcMode;
-        agcModeChanged = false;
-
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR AGC: %s", agcMode?"On":"Off");
-        rtlsdr_set_agc_mode(dev, agcMode?1:0);
-    }
-
-    if (offsetModeChanged) {
-        offsetMode = newOffsetMode;
-        offsetModeChanged = false;
-
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR Offset Tuning: %s", offsetMode?"On":"Off");
-        rtlsdr_set_offset_tuning(dev, offsetMode?1:0);
-    }
-
-    if (IFGainChanged) {
-        IFGain = newIFGain;
-        IFGainChanged = false;
-
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR IF Gain: %f", IFGain);
-        rtlsdr_set_tuner_if_gain(dev, 0, (int)IFGain*10.0);
-    }
-
-    if (tunerGainChanged) {
-        tunerGain = newTunerGain;
-        tunerGainChanged = false;
-
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR Tuner Gain: %f", tunerGain);
-        rtlsdr_set_tuner_gain(dev, (int)tunerGain*10.0);
-    }
-
     if (resetBuffer) {
+        resetBuffer = false;
+        iq_buffer.erase(iq_buffer.begin(), iq_buffer.end());
         rtlsdr_reset_buffer(dev);
     }
-
 
     // Prevent stalling if we've already buffered enough data..
     if ((iq_buffer.size()/2) < numElems)
     {
         int n_read = 0;
 
-        //        for (int i = 0; i < numBuffers; i++) {
-        //            //receive into temporary buffer
-        //            int buf_read;
-        //            rtlsdr_read_sync(dev, &iq_input[n_read], bufferLength, &buf_read);
-        //            n_read += buf_read;
-        //        }
-
         rtlsdr_read_sync(dev, &iq_input[0], bufferLength*numBuffers, &n_read);
 
-        if (!n_read) {
-            return SOAPY_SDR_UNDERFLOW;
-        }
         //was numElems < than the hardware transfer size?
         //may have to keep part of that temporary buffer
         //around for the next call into readStream...
-        iq_buffer.insert(iq_buffer.end(),iq_input.begin(),iq_input.begin()+n_read);
+        if (n_read) {
+            iq_buffer.insert(iq_buffer.end(),iq_input.begin(),iq_input.begin()+n_read);
+        }
     }
 
     int numElemsBuffered = iq_buffer.size()/2;
     int returnedElems = (numElems>numElemsBuffered)?numElemsBuffered:numElems;
 
     if (!returnedElems) {
-        return SOAPY_SDR_UNDERFLOW;
+        return 0;
     }
 
     uint16_t idx;
