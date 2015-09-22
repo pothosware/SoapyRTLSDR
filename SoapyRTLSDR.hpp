@@ -27,12 +27,15 @@
 #include <SoapySDR/Logger.h>
 #include <rtl-sdr.h>
 
-typedef enum rtlsdrRXFormat { RTL_RX_FORMAT_FLOAT32, RTL_RX_FORMAT_INT16 } rtlsdrRXFormat;
+typedef enum rtlsdrRXFormat
+{
+    RTL_RX_FORMAT_FLOAT32, RTL_RX_FORMAT_INT16
+} rtlsdrRXFormat;
 
 #define DEFAULT_BUFFER_LENGTH 16384
 #define DEFAULT_NUM_BUFFERS 16
 
-class SoapyRTLSDR : public SoapySDR::Device
+class SoapyRTLSDR: public SoapySDR::Device
 {
 public:
     SoapyRTLSDR(const SoapySDR::Kwargs &args);
@@ -59,11 +62,8 @@ public:
      * Stream API
      ******************************************************************/
 
-    SoapySDR::Stream *setupStream(
-            const int direction,
-            const std::string &format,
-            const std::vector<size_t> &channels = std::vector<size_t>(),
-            const SoapySDR::Kwargs &args = SoapySDR::Kwargs());
+    SoapySDR::Stream *setupStream(const int direction, const std::string &format, const std::vector<size_t> &channels =
+            std::vector<size_t>(), const SoapySDR::Kwargs &args = SoapySDR::Kwargs());
 
     void closeStream(SoapySDR::Stream *stream);
 
@@ -75,10 +75,7 @@ public:
             const long long timeNs = 0,
             const size_t numElems = 0);
 
-    int deactivateStream(
-            SoapySDR::Stream *stream,
-            const int flags = 0,
-            const long long timeNs = 0);
+    int deactivateStream(SoapySDR::Stream *stream, const int flags = 0, const long long timeNs = 0);
 
     int readStream(
             SoapySDR::Stream *stream,
@@ -126,7 +123,12 @@ public:
      * Frequency API
      ******************************************************************/
 
-    void setFrequency(const int direction, const size_t channel, const std::string &name, const double frequency, const SoapySDR::Kwargs &args = SoapySDR::Kwargs());
+    void setFrequency(
+            const int direction,
+            const size_t channel,
+            const std::string &name,
+            const double frequency,
+            const SoapySDR::Kwargs &args = SoapySDR::Kwargs());
 
     double getFrequency(const int direction, const size_t channel, const std::string &name) const;
 
@@ -150,6 +152,13 @@ public:
 
     std::vector<double> listBandwidths(const int direction, const size_t channel) const;
 
+    /*******************************************************************
+     * Utility
+     ******************************************************************/
+
+    static std::string rtlTunerToString(rtlsdr_tuner tunerType);
+    static rtlsdr_tuner rtlStringToTuner(std::string tunerType);
+
 private:
 
     //device handle
@@ -158,13 +167,13 @@ private:
 
     //cached settings
     rtlsdrRXFormat rxFormat;
+    rtlsdr_tuner tunerType;
     uint32_t sampleRate, centerFrequency;
-    int ppm, directSamplingMode, bufferSize, numBuffers, bufferLength;
-    bool iqSwap, agcMode, offsetMode;
-    double IFGain, tunerGain;
+    int ppm, directSamplingMode, numBuffers, bufferLength, bufferSize;bool iqSwap, agcMode, offsetMode;
+    double IFGain[6], tunerGain;
 
     // buffers
-    bool resetBuffer;
+    int bufferedElems, bufferedElemOffset;bool resetBuffer;
     std::vector<signed char> iq_buffer;
 
     std::vector<std::complex<float> > _lut_32f;
@@ -172,10 +181,8 @@ private:
     std::vector<std::complex<int16_t> > _lut_16i;
     std::vector<std::complex<int16_t> > _lut_swap_16i;
 
-    int bufferedElems, bufferedElemOffset;
-
 public:
     static int rtl_count;
-    static std::vector< SoapySDR::Kwargs > rtl_devices;
+    static std::vector<SoapySDR::Kwargs> rtl_devices;
     static double gainMin, gainMax;
 };

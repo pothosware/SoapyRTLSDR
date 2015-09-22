@@ -33,15 +33,18 @@ static std::vector<SoapySDR::Kwargs> findRTLSDR(const SoapySDR::Kwargs &args)
 
     int this_count = rtlsdr_get_device_count();
 
-    if (!SoapyRTLSDR::rtl_devices.size() || SoapyRTLSDR::rtl_count != this_count) {
+    if (!SoapyRTLSDR::rtl_devices.size() || SoapyRTLSDR::rtl_count != this_count)
+    {
         SoapyRTLSDR::rtl_count = this_count;
 
-        if (SoapyRTLSDR::rtl_devices.size()) {
-            SoapyRTLSDR::rtl_devices.erase(SoapyRTLSDR::rtl_devices.begin(),SoapyRTLSDR::rtl_devices.end());
+        if (SoapyRTLSDR::rtl_devices.size())
+        {
+            SoapyRTLSDR::rtl_devices.erase(SoapyRTLSDR::rtl_devices.begin(), SoapyRTLSDR::rtl_devices.end());
         }
         SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Devices: %d", SoapyRTLSDR::rtl_count);
 
-        for (int i = 0; i < SoapyRTLSDR::rtl_count; i++) {
+        for (int i = 0; i < SoapyRTLSDR::rtl_count; i++)
+        {
             SoapySDR::Kwargs devInfo;
 
             std::string deviceName(rtlsdr_get_device_name(i));
@@ -52,8 +55,10 @@ static std::vector<SoapySDR::Kwargs> findRTLSDR(const SoapySDR::Kwargs &args)
 
             bool deviceAvailable = false;
             SoapySDR_logf(SOAPY_SDR_DEBUG, "Device #%d: %s", i, deviceName.c_str());
-            if (rtlsdr_get_device_usb_strings(i, manufact, product, serial) == 0) {
-                SoapySDR_logf(SOAPY_SDR_DEBUG, "\tManufacturer: %s, Product Name: %s, Serial: %s", manufact, product, serial);
+            if (rtlsdr_get_device_usb_strings(i, manufact, product, serial) == 0)
+            {
+                SoapySDR_logf(SOAPY_SDR_DEBUG, "\tManufacturer: %s, Product Name: %s, Serial: %s", manufact, product,
+                        serial);
 
                 deviceSerial = serial;
                 deviceAvailable = true;
@@ -63,65 +68,48 @@ static std::vector<SoapySDR::Kwargs> findRTLSDR(const SoapySDR::Kwargs &args)
                 rtlsdr_dev_t *devTest;
                 rtlsdr_open(&devTest, i);
 
-                if (!SoapyRTLSDR::gainMax) {
+                if (!SoapyRTLSDR::gainMax)
+                {
                     int num_gains = rtlsdr_get_tuner_gains(devTest, NULL);
-                    int *gains = (int *)malloc(sizeof(int) * num_gains);
+                    int *gains = (int *) malloc(sizeof(int) * num_gains);
 
                     num_gains = rtlsdr_get_tuner_gains(devTest, gains);
 
                     int rangeMin = gains[0], rangeMax = gains[0];
 
-                    for (int g = 0; g < num_gains; g++) {
-                        if (gains[g] < rangeMin) {
+                    for (int g = 0; g < num_gains; g++)
+                    {
+                        if (gains[g] < rangeMin)
+                        {
                             rangeMin = gains[g];
                         }
-                        if (gains[g] > rangeMax) {
+                        if (gains[g] > rangeMax)
+                        {
                             rangeMax = gains[g];
                         }
                     }
                     free(gains);
 
-                    SoapyRTLSDR::gainMin = (double)rangeMin/10.0;
-                    SoapyRTLSDR::gainMax = (double)rangeMax/10.0;
+                    SoapyRTLSDR::gainMin = (double) rangeMin / 10.0;
+                    SoapyRTLSDR::gainMax = (double) rangeMax / 10.0;
                 }
 
-                switch (rtlsdr_get_tuner_type(devTest)) {
-                case RTLSDR_TUNER_UNKNOWN:
-                    deviceTuner = "Unknown";
-                    break;
-                case RTLSDR_TUNER_E4000:
-                    deviceTuner = "Elonics E4000";
-                    break;
-                case RTLSDR_TUNER_FC0012:
-                    deviceTuner = "Fitipower FC0012";
-                    break;
-                case RTLSDR_TUNER_FC0013:
-                    deviceTuner = "Fitipower FC0013";
-                    break;
-                case RTLSDR_TUNER_FC2580:
-                    deviceTuner = "Fitipower FC2580";
-                    break;
-                case RTLSDR_TUNER_R820T:
-                    deviceTuner = "Rafael Micro R820T";
-                    break;
-                case RTLSDR_TUNER_R828D:
-                    deviceTuner = "Rafael Micro R828D";
-                    break;
-                }
+                deviceTuner = SoapyRTLSDR::rtlTunerToString(rtlsdr_get_tuner_type(devTest));
 
                 SoapySDR_logf(SOAPY_SDR_DEBUG, "\t Tuner type: %s", deviceTuner.c_str());
 
                 rtlsdr_close(devTest);
-            } else {
+            }
+            else
+            {
                 SoapySDR_logf(SOAPY_SDR_DEBUG, "\tUnable to access device #%d (in use?)", i);
             }
 
             std::string deviceLabel = std::string(rtlsdr_get_device_name(i)) + " :: " + deviceSerial;
 
-
             devInfo["rtl"] = std::to_string(i);
             devInfo["label"] = deviceLabel;
-            devInfo["available"] = deviceAvailable?"Yes":"No";
+            devInfo["available"] = deviceAvailable ? "Yes" : "No";
             devInfo["product"] = deviceProduct;
             devInfo["serial"] = deviceSerial;
             devInfo["manufacturer"] = deviceManufacturer;
@@ -131,20 +119,29 @@ static std::vector<SoapySDR::Kwargs> findRTLSDR(const SoapySDR::Kwargs &args)
     }
 
     //filtering
-    for (int i = 0; i < SoapyRTLSDR::rtl_count; i++) {
+    for (int i = 0; i < SoapyRTLSDR::rtl_count; i++)
+    {
         SoapySDR::Kwargs devInfo = SoapyRTLSDR::rtl_devices[i];
-        if (args.count("rtl") != 0) {
-            if (args.at("rtl") != devInfo.at("rtl")) {
+        if (args.count("rtl") != 0)
+        {
+            if (args.at("rtl") != devInfo.at("rtl"))
+            {
                 continue;
             }
             SoapySDR_logf(SOAPY_SDR_DEBUG, "Found device by index %s", devInfo.at("rtl").c_str());
-        } else if (args.count("serial") != 0) {
-            if (devInfo.at("serial") != args.at("serial")) {
+        }
+        else if (args.count("serial") != 0)
+        {
+            if (devInfo.at("serial") != args.at("serial"))
+            {
                 continue;
             }
             SoapySDR_logf(SOAPY_SDR_DEBUG, "Found device by serial %s", args.at("serial").c_str());
-        } else if (args.count("label") != 0) {
-            if (devInfo.at("label") != args.at("label")) {
+        }
+        else if (args.count("label") != 0)
+        {
+            if (devInfo.at("label") != args.at("label"))
+            {
                 continue;
             }
             SoapySDR_logf(SOAPY_SDR_DEBUG, "Found device by label %s", args.at("label").c_str());

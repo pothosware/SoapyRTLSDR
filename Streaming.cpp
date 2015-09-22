@@ -31,7 +31,8 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
         const std::vector<size_t> &channels,
         const SoapySDR::Kwargs &args)
 {
-    if (direction != SOAPY_SDR_RX) {
+    if (direction != SOAPY_SDR_RX)
+    {
         throw std::runtime_error("SDRPlay is RX only, use SOAPY_SDR_RX");
     }
 
@@ -41,15 +42,17 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
         throw std::runtime_error("setupStream invalid channel selection");
     }
 
-    if (!_lut_32f.size()) {
+    if (!_lut_32f.size())
+    {
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Generating RTL-SDR lookup tables");
         // create lookup tables
-        for (unsigned int i = 0; i <= 0xffff; i++) {
+        for (unsigned int i = 0; i <= 0xffff; i++)
+        {
 # if (__BYTE_ORDER == __LITTLE_ENDIAN)
             std::complex<float> v32f, vs32f;
 
-            v32f.real((float(i & 0xff) - 127.4f) * (1.0f/128.0f));
-            v32f.imag((float(i >> 8) - 127.4f) * (1.0f/128.0f));
+            v32f.real((float(i & 0xff) - 127.4f) * (1.0f / 128.0f));
+            v32f.imag((float(i >> 8) - 127.4f) * (1.0f / 128.0f));
             _lut_32f.push_back(v32f);
 
             vs32f.real(v32f.imag());
@@ -58,8 +61,8 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
 
             std::complex<int16_t> v16i, vs16i;
 
-            v16i.real(int16_t((float(SHRT_MAX) * ((float(i & 0xff) - 127.4f) * (1.0f/128.0f)))));
-            v16i.imag(int16_t((float(SHRT_MAX) * ((float(i >> 8) - 127.4f) * (1.0f/128.0f)))));
+            v16i.real(int16_t((float(SHRT_MAX) * ((float(i & 0xff) - 127.4f) * (1.0f / 128.0f)))));
+            v16i.imag(int16_t((float(SHRT_MAX) * ((float(i >> 8) - 127.4f) * (1.0f / 128.0f)))));
             _lut_16i.push_back(v16i);
 
             vs16i.real(vs16i.imag());
@@ -89,13 +92,15 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
     }
     else
     {
-        throw std::runtime_error("setupStream invalid format '" + format + "' -- Only CS16 and CF32 are supported by SoapyRTLSDR module.");
+        throw std::runtime_error(
+                "setupStream invalid format '" + format
+                        + "' -- Only CS16 and CF32 are supported by SoapyRTLSDR module.");
     }
 
     bufferSize = bufferLength * numBuffers;
     iq_buffer.resize(bufferSize);
 
-    return (SoapySDR::Stream *)this;
+    return (SoapySDR::Stream *) this;
 }
 
 void SoapyRTLSDR::closeStream(SoapySDR::Stream *stream)
@@ -105,7 +110,7 @@ void SoapyRTLSDR::closeStream(SoapySDR::Stream *stream)
 
 size_t SoapyRTLSDR::getStreamMTU(SoapySDR::Stream *stream) const
 {
-    return bufferSize/2;
+    return bufferSize / 2;
 }
 
 int SoapyRTLSDR::activateStream(
@@ -118,10 +123,7 @@ int SoapyRTLSDR::activateStream(
     return 0;
 }
 
-int SoapyRTLSDR::deactivateStream(
-        SoapySDR::Stream *stream,
-        const int flags,
-        const long long timeNs)
+int SoapyRTLSDR::deactivateStream(SoapySDR::Stream *stream, const int flags, const long long timeNs)
 {
     return 0;
 }
@@ -137,7 +139,8 @@ int SoapyRTLSDR::readStream(
     //this is the user's buffer for channel 0
     void *buff0 = buffs[0];
 
-    if (resetBuffer) {
+    if (resetBuffer)
+    {
         resetBuffer = false;
         bufferedElems = 0;
         rtlsdr_reset_buffer(dev);
@@ -149,54 +152,60 @@ int SoapyRTLSDR::readStream(
     if (bufferedElems == 0)
     {
         //receive into temp buffer
-        rtlsdr_read_sync(dev, &iq_buffer[0], bufferLength*numBuffers, &n_read);
-        bufferedElems = n_read/2;
+        rtlsdr_read_sync(dev, &iq_buffer[0], bufferLength * numBuffers, &n_read);
+        bufferedElems = n_read / 2;
         bufferedElemOffset = 0;
     }
 
-    size_t returnedElems = std::min((int)bufferedElems, (int)numElems);
+    size_t returnedElems = std::min((int) bufferedElems, (int) numElems);
 
     uint16_t idx;
-    int buffer_ofs = (bufferedElemOffset*2);
+    int buffer_ofs = (bufferedElemOffset * 2);
 
     //convert into user's buff0
     if (rxFormat == RTL_RX_FORMAT_FLOAT32)
     {
-        float *ftarget = (float *)buff0;
+        float *ftarget = (float *) buff0;
         std::complex<float> tmp;
-        if (iqSwap) {
+        if (iqSwap)
+        {
             for (int i = 0; i < returnedElems; i++)
             {
-                tmp = _lut_swap_32f[*((uint16_t*)&iq_buffer[buffer_ofs+2*i])];
-                ftarget[i*2] = tmp.real();
-                ftarget[i*2+1] = tmp.imag();
+                tmp = _lut_swap_32f[*((uint16_t*) &iq_buffer[buffer_ofs + 2 * i])];
+                ftarget[i * 2] = tmp.real();
+                ftarget[i * 2 + 1] = tmp.imag();
             }
-        } else {
+        }
+        else
+        {
             for (int i = 0; i < returnedElems; i++)
             {
-                tmp = _lut_32f[*((uint16_t*)&iq_buffer[buffer_ofs+2*i])];
-                ftarget[i*2] = tmp.real();
-                ftarget[i*2+1] = tmp.imag();
+                tmp = _lut_32f[*((uint16_t*) &iq_buffer[buffer_ofs + 2 * i])];
+                ftarget[i * 2] = tmp.real();
+                ftarget[i * 2 + 1] = tmp.imag();
             }
         }
     }
     else if (rxFormat == RTL_RX_FORMAT_INT16)
     {
-        int16_t *itarget = (int16_t *)buff0;
+        int16_t *itarget = (int16_t *) buff0;
         std::complex<int16_t> tmp;
-        if (iqSwap) {
+        if (iqSwap)
+        {
             for (int i = 0; i < returnedElems; i++)
             {
-                tmp = _lut_swap_16i[*((uint16_t*)&iq_buffer[buffer_ofs+2*i])];
-                itarget[i*2] = tmp.real();
-                itarget[i*2+1] = tmp.imag();
+                tmp = _lut_swap_16i[*((uint16_t*) &iq_buffer[buffer_ofs + 2 * i])];
+                itarget[i * 2] = tmp.real();
+                itarget[i * 2 + 1] = tmp.imag();
             }
-        } else {
+        }
+        else
+        {
             for (int i = 0; i < returnedElems; i++)
             {
-                tmp = _lut_16i[*((uint16_t*)&iq_buffer[buffer_ofs+2*i])];
-                itarget[i*2] = tmp.real();
-                itarget[i*2+1] = tmp.imag();
+                tmp = _lut_16i[*((uint16_t*) &iq_buffer[buffer_ofs + 2 * i])];
+                itarget[i * 2] = tmp.real();
+                itarget[i * 2 + 1] = tmp.imag();
             }
         }
     }
