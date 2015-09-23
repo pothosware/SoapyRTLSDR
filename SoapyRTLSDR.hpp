@@ -169,11 +169,13 @@ private:
     rtlsdrRXFormat rxFormat;
     rtlsdr_tuner tunerType;
     uint32_t sampleRate, centerFrequency;
-    int ppm, directSamplingMode, numBuffers, bufferLength, bufferSize;bool iqSwap, agcMode, offsetMode;
+    int ppm, directSamplingMode, numBuffers, bufferLength, bufferSize;
+    bool iqSwap, agcMode, offsetMode;
     double IFGain[6], tunerGain;
 
     // buffers
-    int bufferedElems, bufferedElemOffset;bool resetBuffer;
+    int bufferedElems, bufferedElemOffset;
+    bool resetBuffer;
     std::vector<signed char> iq_buffer;
 
     std::vector<std::complex<float> > _lut_32f;
