@@ -24,6 +24,7 @@
 
 #include "SoapyRTLSDR.hpp"
 #include <algorithm>
+#include <climits> //SHRT_MAX
 
 SoapySDR::Stream *SoapyRTLSDR::setupStream(
         const int direction,
@@ -33,7 +34,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
 {
     if (direction != SOAPY_SDR_RX)
     {
-        throw std::runtime_error("SDRPlay is RX only, use SOAPY_SDR_RX");
+        throw std::runtime_error("RTL-SDR is RX only, use SOAPY_SDR_RX");
     }
 
     //check the channel configuration
@@ -159,7 +160,6 @@ int SoapyRTLSDR::readStream(
 
     size_t returnedElems = std::min((int) bufferedElems, (int) numElems);
 
-    uint16_t idx;
     int buffer_ofs = (bufferedElemOffset * 2);
 
     //convert into user's buff0
@@ -169,7 +169,7 @@ int SoapyRTLSDR::readStream(
         std::complex<float> tmp;
         if (iqSwap)
         {
-            for (int i = 0; i < returnedElems; i++)
+            for (size_t i = 0; i < returnedElems; i++)
             {
                 tmp = _lut_swap_32f[*((uint16_t*) &iq_buffer[buffer_ofs + 2 * i])];
                 ftarget[i * 2] = tmp.real();
@@ -178,7 +178,7 @@ int SoapyRTLSDR::readStream(
         }
         else
         {
-            for (int i = 0; i < returnedElems; i++)
+            for (size_t i = 0; i < returnedElems; i++)
             {
                 tmp = _lut_32f[*((uint16_t*) &iq_buffer[buffer_ofs + 2 * i])];
                 ftarget[i * 2] = tmp.real();
@@ -192,7 +192,7 @@ int SoapyRTLSDR::readStream(
         std::complex<int16_t> tmp;
         if (iqSwap)
         {
-            for (int i = 0; i < returnedElems; i++)
+            for (size_t i = 0; i < returnedElems; i++)
             {
                 tmp = _lut_swap_16i[*((uint16_t*) &iq_buffer[buffer_ofs + 2 * i])];
                 itarget[i * 2] = tmp.real();
@@ -201,7 +201,7 @@ int SoapyRTLSDR::readStream(
         }
         else
         {
-            for (int i = 0; i < returnedElems; i++)
+            for (size_t i = 0; i < returnedElems; i++)
             {
                 tmp = _lut_16i[*((uint16_t*) &iq_buffer[buffer_ofs + 2 * i])];
                 itarget[i * 2] = tmp.real();

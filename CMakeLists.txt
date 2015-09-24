@@ -21,6 +21,17 @@ message(STATUS "RTLSDR_LIBRARIES - ${RTLSDR_LIBRARIES}")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${RTLSDR_INCLUDE_DIRS})
 
+#enable c++11 features
+if(CMAKE_COMPILER_IS_GNUCXX)
+
+    #C++11 is a required language feature for this project
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
+    #disable warnings for unused parameters
+    add_definitions(-Wno-unused-parameter)
+
+endif(CMAKE_COMPILER_IS_GNUCXX)
+
 SOAPY_SDR_MODULE_UTIL(
     TARGET rtlsdrSupport
     SOURCES

@@ -24,6 +24,7 @@
 
 #include "SoapyRTLSDR.hpp"
 #include <SoapySDR/Registry.hpp>
+#include <cstdlib> //malloc
 
 static std::vector<SoapySDR::Kwargs> findRTLSDR(const SoapySDR::Kwargs &args)
 {
