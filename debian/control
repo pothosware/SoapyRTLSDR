@@ -1,0 +1,20 @@
+Source: soapyrtlsdr
+Section: libs
+Priority: optional
+Maintainer: Josh Blum <josh@pothosware.com>
+Build-Depends:
+    debhelper (>= 9.0.0),
+    cmake,
+    libsoapysdr-dev,
+    librtlsdr-dev
+Standards-Version: 3.9.5
+Homepage: https://github.com/pothosware/SoapyRTLSDR/wiki
+Vcs-Git: https://github.com/pothosware/SoapyRTLSDR.git
+Vcs-Browser: https://github.com/pothosware/SoapyRTLSDR
+
+Package: soapysdr-rtlsdr
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Soapy RTL-SDR - RTL-SDR device support for Soapy SDR.
+ A Soapy module that supports RTL-SDR devices within the Soapy API.
