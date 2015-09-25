@@ -60,11 +60,11 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
 
     if (args.count("rtl") != 0)
     {
-        int deviceId_in = std::stoi(args.at("rtl"));
-        if (!std::isnan(deviceId_in))
+        try
         {
-            deviceId = deviceId_in;
+            deviceId = std::stoi(args.at("rtl"));
         }
+        catch (const std::invalid_argument &){}
         if (deviceId < 0 || deviceId >= SoapyRTLSDR::rtl_count)
         {
             throw std::runtime_error(
