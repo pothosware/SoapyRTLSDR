@@ -123,62 +123,70 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
 
     if (args.count("buflen") != 0)
     {
-        int bufferLength_in = std::stoi(args.at("buflen"));
-        if (!std::isnan(bufferLength_in) && bufferLength_in)
+        try
         {
-            bufferLength = bufferLength_in;
+            int bufferLength_in = std::stoi(args.at("buflen"));
+            if (bufferLength_in != 0)
+            {
+                bufferLength = bufferLength_in;
+            }
         }
+        catch (const std::invalid_argument &){}
     }
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using buffer length %d", bufferLength);
 
     if (args.count("buffers") != 0)
     {
-        int numBuffers_in = std::stoi(args.at("buffers"));
-        if (!std::isnan(numBuffers_in) && numBuffers_in)
+        try
         {
-            numBuffers = numBuffers_in;
+            int numBuffers_in = std::stoi(args.at("buffers"));
+            if (numBuffers_in != 0)
+            {
+                numBuffers = numBuffers_in;
+            }
         }
+        catch (const std::invalid_argument &){}
     }
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using %d buffers", numBuffers);
 
     if (args.count("direct_samp") != 0)
     {
-        int directSamplingMode_in = std::stoi(args.at("direct_samp"));
-        if (!std::isnan(directSamplingMode_in))
+        try
         {
-            directSamplingMode = directSamplingMode_in;
+            directSamplingMode = std::stoi(args.at("direct_samp"));
         }
+        catch (const std::invalid_argument &){}
     }
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR direct sampling mode %d", directSamplingMode);
 
     if (args.count("iq_swap") != 0)
     {
-        int iqSwap_in = std::stoi(args.at("iq_swap"));
-        if (!std::isnan(iqSwap_in))
+        try
         {
-            iqSwap = iqSwap_in ? true : false;
+            iqSwap = std::stoi(args.at("iq_swap"))? true : false;
         }
+        catch (const std::invalid_argument &){}
     }
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR I/Q swap: %s", iqSwap ? "Yes" : "No");
 
     if (args.count("offset_tune") != 0)
     {
-        int offsetMode_in = std::stoi(args.at("offset_tune"));
-        if (!std::isnan(offsetMode_in))
+        try
         {
-            offsetMode = offsetMode_in ? true : false;
+            offsetMode = std::stoi(args.at("offset_tune"))? true : false;
         }
+        catch (const std::invalid_argument &){}
     }
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR offset_tune mode: %s", offsetMode ? "Yes" : "No");
     rtlsdr_set_offset_tuning(dev, offsetMode ? 1 : 0);
 
     if (args.count("corr") != 0)
     {
-        int ppm_in = std::stoi(args.at("corr"));
-        if (!std::isnan(ppm_in))
+        try
         {
-            ppm = ppm_in;
+            ppm = std::stoi(args.at("corr"));
         }
+        catch (const std::invalid_argument &){}
     }
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR PPM: %d", ppm);
 
@@ -335,8 +343,8 @@ void SoapyRTLSDR::setGain(const int direction, const size_t channel, const std::
         int stage = 1;
         if (name.length() > 2)
         {
-            int stage_in = std::stoi(name.substr(2));
-            if (std::isnan(stage_in) || (stage_in < 1) || (stage_in > 6))
+            int stage_in = name.at(2)-'0';
+            if ((stage_in < 1) || (stage_in > 6))
             {
                 throw std::runtime_error("Invalid IF stage, 1 or 1-6 for E4000");
             }
@@ -361,8 +369,8 @@ double SoapyRTLSDR::getGain(const int direction, const size_t channel, const std
         int stage = 1;
         if (name.length() > 2)
         {
-            int stage_in = std::stoi(name.substr(2));
-            if (std::isnan(stage_in) || (stage_in < 1) || (stage_in > 6))
+            int stage_in = name.at(2)-'0';
+            if ((stage_in < 1) || (stage_in > 6))
             {
                 throw std::runtime_error("Invalid IF stage, 1 or 1-6 for E4000");
             }
