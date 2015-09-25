@@ -1,5 +1,10 @@
 # Soapy SDR module for RTL-SDR
 
+##Dependencies
+
+* SoapySDR - https://github.com/pothosware/SoapySDR/wiki
+* librtl-sdr - http://sdr.osmocom.org/trac/wiki/rtl-sdr
+
 ##Documentation
 
 * https://github.com/pothosware/SoapyRTLSDR/wiki
