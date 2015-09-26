@@ -26,6 +26,7 @@
 #include <SoapySDR/Device.hpp>
 #include <SoapySDR/Logger.h>
 #include <rtl-sdr.h>
+#include <stdexcept>
 
 typedef enum rtlsdrRXFormat
 {

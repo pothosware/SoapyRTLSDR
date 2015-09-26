@@ -25,7 +25,7 @@ include_directories(${RTLSDR_INCLUDE_DIRS})
 if(CMAKE_COMPILER_IS_GNUCXX)
 
     #C++11 is a required language feature for this project
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 
     #disable warnings for unused parameters
     add_definitions(-Wno-unused-parameter)
