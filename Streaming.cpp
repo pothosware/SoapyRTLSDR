@@ -221,13 +221,17 @@ int SoapyRTLSDR::readStream(
         {
             for (size_t i = 0; i < returnedElems; i++)
             {
-                itarget[i * 2] = iq_buffer[buffer_ofs + i * 2 + 1];
-                itarget[i * 2 + 1] = iq_buffer[buffer_ofs + i * 2];
+                itarget[i * 2] = iq_buffer[buffer_ofs + i * 2 + 1]-127;
+                itarget[i * 2 + 1] = iq_buffer[buffer_ofs + i * 2]-127;
             }
         }
         else
         {
-            memcpy(itarget, &iq_buffer[buffer_ofs], returnedElems * 2);
+            for (size_t i = 0; i < returnedElems; i++)
+            {
+                itarget[i * 2] = iq_buffer[buffer_ofs + i * 2]-127;
+                itarget[i * 2 + 1] = iq_buffer[buffer_ofs + i * 2 + 1]-127;
+            }
         }
     }
 
