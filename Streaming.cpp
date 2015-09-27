@@ -43,7 +43,29 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
         throw std::runtime_error("setupStream invalid channel selection");
     }
 
-    if (!_lut_32f.size())
+    //check the format
+    if (format == "CF32")
+    {
+        SoapySDR_log(SOAPY_SDR_INFO, "Using format CF32.");
+        rxFormat = RTL_RX_FORMAT_FLOAT32;
+    }
+    else if (format == "CS16")
+    {
+        SoapySDR_log(SOAPY_SDR_INFO, "Using format CS16.");
+        rxFormat = RTL_RX_FORMAT_INT16;
+    }
+    else if (format == "CS8") {
+        SoapySDR_log(SOAPY_SDR_INFO, "Using format CS8.");
+        rxFormat = RTL_RX_FORMAT_INT8;
+    }
+    else
+    {
+        throw std::runtime_error(
+                "setupStream invalid format '" + format
+                        + "' -- Only CS8, CS16 and CF32 are supported by SoapyRTLSDR module.");
+    }
+
+    if (rxFormat != RTL_RX_FORMAT_INT8 && !_lut_32f.size())
     {
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Generating RTL-SDR lookup tables");
         // create lookup tables
@@ -78,24 +100,6 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
             //        _lut_swap.push_back(tmp_swap);
 #endif
         }
-    }
-
-    //check the format
-    if (format == "CF32")
-    {
-        SoapySDR_log(SOAPY_SDR_INFO, "Using format CF32.");
-        rxFormat = RTL_RX_FORMAT_FLOAT32;
-    }
-    else if (format == "CS16")
-    {
-        SoapySDR_log(SOAPY_SDR_INFO, "Using format CS16.");
-        rxFormat = RTL_RX_FORMAT_INT16;
-    }
-    else
-    {
-        throw std::runtime_error(
-                "setupStream invalid format '" + format
-                        + "' -- Only CS16 and CF32 are supported by SoapyRTLSDR module.");
     }
 
     bufferSize = bufferLength * numBuffers;
@@ -207,6 +211,22 @@ int SoapyRTLSDR::readStream(
                 itarget[i * 2] = tmp.real();
                 itarget[i * 2 + 1] = tmp.imag();
             }
+        }
+    }
+    else if (rxFormat == RTL_RX_FORMAT_INT8)
+    {
+        int8_t *itarget = (int8_t *) buff0;
+        if (iqSwap)
+        {
+            for (size_t i = 0; i < returnedElems; i++)
+            {
+                itarget[i * 2] = iq_buffer[buffer_ofs + i * 2 + 1];
+                itarget[i * 2 + 1] = iq_buffer[buffer_ofs + i * 2];
+            }
+        }
+        else
+        {
+            memcpy(itarget, &iq_buffer[buffer_ofs], returnedElems * 2);
         }
     }
 
