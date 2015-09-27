@@ -25,6 +25,7 @@
 #include "SoapyRTLSDR.hpp"
 #include <algorithm>
 #include <climits> //SHRT_MAX
+#include <cstring> // memcpy
 
 SoapySDR::Stream *SoapyRTLSDR::setupStream(
         const int direction,
