@@ -38,6 +38,10 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 
 endif(CMAKE_COMPILER_IS_GNUCXX)
 
+if (APPLE)
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wc++11-extensions")
+endif(APPLE)
+
 SOAPY_SDR_MODULE_UTIL(
     TARGET rtlsdrSupport
     SOURCES

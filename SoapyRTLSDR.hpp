@@ -196,7 +196,7 @@ public:
     std::mutex _buf_mutex;
     std::condition_variable _buf_cond;
 
-    std::vector<std::vector<signed char>> _buffs;
+    std::vector<std::vector<signed char> > _buffs;
     //int8_t		**_buf;
     //uint32_t	_buf_num;
     //uint32_t	_buf_len;
