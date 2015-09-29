@@ -27,6 +27,9 @@
 #include <SoapySDR/Logger.h>
 #include <rtl-sdr.h>
 #include <stdexcept>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 typedef enum rtlsdrRXFormat
 {
@@ -34,7 +37,7 @@ typedef enum rtlsdrRXFormat
 } rtlsdrRXFormat;
 
 #define DEFAULT_BUFFER_LENGTH 16384
-#define DEFAULT_NUM_BUFFERS 16
+#define DEFAULT_NUM_BUFFERS 15
 
 class SoapyRTLSDR: public SoapySDR::Device
 {
@@ -185,6 +188,24 @@ private:
     std::vector<std::complex<int16_t> > _lut_swap_16i;
 
 public:
+    //async api usage
+    std::thread _rx_async_thread;
+    void rx_async_operation(void);
+    void rx_callback(unsigned char *buf, uint32_t len);
+
+    std::mutex _buf_mutex;
+    std::condition_variable _buf_cond;
+
+    std::vector<std::vector<signed char> > _buffs;
+    //int8_t		**_buf;
+    //uint32_t	_buf_num;
+    //uint32_t	_buf_len;
+    uint32_t	_buf_head;
+    uint32_t	_buf_tail;
+    uint32_t	_buf_count;
+    //uint32_t	_buf_offset;
+    signed char *_nowBuff;
+
     static int rtl_count;
     static std::vector<SoapySDR::Kwargs> rtl_devices;
     static double gainMin, gainMax;
