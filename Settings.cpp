@@ -55,7 +55,6 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
     offsetMode = false;
 
     bufferedElems = 0;
-    bufferedElemOffset = 0;
     resetBuffer = false;
 
     if (args.count("rtl") != 0)
@@ -126,7 +125,7 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
         try
         {
             int bufferLength_in = std::stoi(args.at("buflen"));
-            if (bufferLength_in != 0)
+            if (bufferLength_in > 0)
             {
                 bufferLength = bufferLength_in;
             }
@@ -140,7 +139,7 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
         try
         {
             int numBuffers_in = std::stoi(args.at("buffers"));
-            if (numBuffers_in != 0)
+            if (numBuffers_in > 0)
             {
                 numBuffers = numBuffers_in;
             }
@@ -201,8 +200,6 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
         IFGain[i] = 0;
     }
     tunerGain = rtlsdr_get_tuner_gain(dev);
-
-    bufferSize = bufferLength * numBuffers;
 }
 
 SoapyRTLSDR::~SoapyRTLSDR(void)

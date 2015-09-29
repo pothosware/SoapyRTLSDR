@@ -38,6 +38,7 @@ typedef enum rtlsdrRXFormat
 
 #define DEFAULT_BUFFER_LENGTH 16384
 #define DEFAULT_NUM_BUFFERS 15
+#define BYTES_PER_SAMPLE 2
 
 class SoapyRTLSDR: public SoapySDR::Device
 {
@@ -173,14 +174,14 @@ private:
     rtlsdrRXFormat rxFormat;
     rtlsdr_tuner tunerType;
     uint32_t sampleRate, centerFrequency;
-    int ppm, directSamplingMode, numBuffers, bufferLength, bufferSize;
+    int ppm, directSamplingMode;
+    size_t numBuffers, bufferLength;
     bool iqSwap, agcMode, offsetMode;
     double IFGain[6], tunerGain;
 
     // buffers
-    int bufferedElems, bufferedElemOffset;
+    size_t bufferedElems;
     bool resetBuffer;
-    std::vector<signed char> iq_buffer;
 
     std::vector<std::complex<float> > _lut_32f;
     std::vector<std::complex<float> > _lut_swap_32f;
@@ -197,14 +198,11 @@ public:
     std::condition_variable _buf_cond;
 
     std::vector<std::vector<signed char> > _buffs;
-    //int8_t		**_buf;
-    //uint32_t	_buf_num;
-    //uint32_t	_buf_len;
-    uint32_t	_buf_head;
-    uint32_t	_buf_tail;
-    uint32_t	_buf_count;
-    //uint32_t	_buf_offset;
-    signed char *_nowBuff;
+    size_t	_buf_head;
+    size_t	_buf_tail;
+    size_t	_buf_count;
+    signed char *_currentBuff;
+    bool _overflowEvent;
 
     static int rtl_count;
     static std::vector<SoapySDR::Kwargs> rtl_devices;

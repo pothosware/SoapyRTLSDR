@@ -23,7 +23,8 @@
  */
 
 #include "SoapyRTLSDR.hpp"
-#include <algorithm>
+#include <SoapySDR/Logger.hpp>
+#include <algorithm> //min
 #include <climits> //SHRT_MAX
 #include <cstring> // memcpy
 
@@ -103,30 +104,27 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
         }
     }
 
-    bufferSize = bufferLength * numBuffers;
-    iq_buffer.resize(bufferSize);
+    //clear async fifo counts
+    _buf_tail = 0;
+    _buf_count = 0;
+    _buf_head = 0;
 
-    _buf_tail = _buf_count = _buf_head = 0;
-
+    //allocate buffers
     _buffs.resize(numBuffers);
+    for (auto &buff : _buffs) buff.reserve(bufferLength);
     for (auto &buff : _buffs) buff.resize(bufferLength);
-
-    setbuf(stdout, NULL);
-        rtlsdr_reset_buffer(dev);
-    _rx_async_thread = std::thread(&SoapyRTLSDR::rx_async_operation, this);
 
     return (SoapySDR::Stream *) this;
 }
 
 void SoapyRTLSDR::closeStream(SoapySDR::Stream *stream)
 {
-    rtlsdr_cancel_async(dev);
-    _rx_async_thread.join();
+    _buffs.clear();
 }
 
 size_t SoapyRTLSDR::getStreamMTU(SoapySDR::Stream *stream) const
 {
-    return bufferSize / 2;
+    return bufferLength / BYTES_PER_SAMPLE;
 }
 
 int SoapyRTLSDR::activateStream(
@@ -135,7 +133,16 @@ int SoapyRTLSDR::activateStream(
         const long long timeNs,
         const size_t numElems)
 {
+    if (flags != 0) return SOAPY_SDR_NOT_SUPPORTED;
     resetBuffer = true;
+
+    //start the async thread
+    if (not _rx_async_thread.joinable())
+    {
+        rtlsdr_reset_buffer(dev);
+        _rx_async_thread = std::thread(&SoapyRTLSDR::rx_async_operation, this);
+    }
+
     return 0;
 }
 
@@ -148,9 +155,9 @@ static void _rx_callback(unsigned char *buf, uint32_t len, void *ctx)
 
 void SoapyRTLSDR::rx_async_operation(void)
 {
-    printf("rx_async_operation\n");
+    //printf("rx_async_operation\n");
     rtlsdr_read_async(dev, &_rx_callback, this, numBuffers, bufferLength);
-    printf("rx_async_operation done!\n");
+    //printf("rx_async_operation done!\n");
 }
 
 void SoapyRTLSDR::rx_callback(unsigned char *buf, uint32_t len)
@@ -158,21 +165,40 @@ void SoapyRTLSDR::rx_callback(unsigned char *buf, uint32_t len)
     std::unique_lock<std::mutex> lock(_buf_mutex);
 
     //printf("_rx_callback %d _buf_head=%d, numBuffers=%d\n", len, _buf_head, _buf_tail);
-    _buf_tail = (_buf_head + _buf_count) % numBuffers;
-    std::memcpy(_buffs[_buf_tail].data(), buf, len);
-    if (_buf_count == numBuffers)
+
+    //overflow condition:
+    //the caller is not reading fast enough: remove all enqueued samples
+    //the queue is now clear for the caller to try and catch up again
+    //numBuffers-1, because one buffer may be held by bufferedElems
+    if (_buf_count >= (numBuffers-1))
     {
-        _buf_head = (_buf_head + 1) % numBuffers;
+        _buf_head = (_buf_head + _buf_count) % numBuffers;
+        _buf_count = 0;
+        bufferedElems = 0;
+        _overflowEvent = true;
     }
-    else 
-    {
-        _buf_count++;
-    }
+
+    //copy into the buffer queue
+    auto &buff = _buffs[_buf_tail];
+    buff.resize(len);
+    std::memcpy(buff.data(), buf, len);
+
+    //increment the tail pointer
+    _buf_tail = (_buf_tail + 1) % numBuffers;
+    _buf_count++;
+
+    //notify readStream()
     _buf_cond.notify_one();
 }
 
 int SoapyRTLSDR::deactivateStream(SoapySDR::Stream *stream, const int flags, const long long timeNs)
 {
+    if (flags != 0) return SOAPY_SDR_NOT_SUPPORTED;
+    if (_rx_async_thread.joinable())
+    {
+        rtlsdr_cancel_async(dev);
+        _rx_async_thread.join();
+    }
     return 0;
 }
 
@@ -187,36 +213,45 @@ int SoapyRTLSDR::readStream(
     //this is the user's buffer for channel 0
     void *buff0 = buffs[0];
 
+    //reset is issued by various settings
+    //to drain old data out of the queue
     if (resetBuffer)
     {
+        //drain all buffers from the fifo
+        std::unique_lock <std::mutex> lock(_buf_mutex);
+        _buf_head = (_buf_head + _buf_count) % numBuffers;
+        _buf_count = 0;
         resetBuffer = false;
         bufferedElems = 0;
+        _overflowEvent = false;
     }
-
-    int n_read = 0;
 
     //are elements left in the buffer? if not, do a new read.
     if (bufferedElems == 0)
     {
-        std::unique_lock <std::mutex> lock( _buf_mutex );
+        std::unique_lock<std::mutex> lock(_buf_mutex);
 
-        while ( _buf_count < 3 )
-            _buf_cond.wait( lock );
+        if (_overflowEvent)
+        {
+            _overflowEvent = false;
+            SoapySDR::log(SOAPY_SDR_SSI, "O");
+            return SOAPY_SDR_OVERFLOW;
+        }
+
+        while (_buf_count == 0)
+        {
+            _buf_cond.wait_for(lock, std::chrono::microseconds(timeoutUs));
+            if (_buf_count == 0) return SOAPY_SDR_TIMEOUT;
+        }
 
         _buf_head = (_buf_head + 1) % numBuffers;
         _buf_count--;
 
-        _nowBuff = _buffs[_buf_head].data();
-
-        //receive into temp buffer
-        //rtlsdr_read_sync(dev, &iq_buffer[0], bufferLength * numBuffers, &n_read);
-        bufferedElems = bufferLength / 2;
-        bufferedElemOffset = 0;
+        _currentBuff = _buffs[_buf_head].data();
+        bufferedElems = _buffs[_buf_head].size() / BYTES_PER_SAMPLE;
     }
 
-    size_t returnedElems = std::min((int) bufferedElems, (int) numElems);
-
-    int buffer_ofs = (bufferedElemOffset * 2);
+    size_t returnedElems = std::min(bufferedElems, numElems);
 
     //convert into user's buff0
     if (rxFormat == RTL_RX_FORMAT_FLOAT32)
@@ -227,7 +262,7 @@ int SoapyRTLSDR::readStream(
         {
             for (size_t i = 0; i < returnedElems; i++)
             {
-                tmp = _lut_swap_32f[*((uint16_t*) &_nowBuff[buffer_ofs + 2 * i])];
+                tmp = _lut_swap_32f[*((uint16_t*) &_currentBuff[2 * i])];
                 ftarget[i * 2] = tmp.real();
                 ftarget[i * 2 + 1] = tmp.imag();
             }
@@ -236,7 +271,7 @@ int SoapyRTLSDR::readStream(
         {
             for (size_t i = 0; i < returnedElems; i++)
             {
-                tmp = _lut_32f[*((uint16_t*) &_nowBuff[buffer_ofs + 2 * i])];
+                tmp = _lut_32f[*((uint16_t*) &_currentBuff[2 * i])];
                 ftarget[i * 2] = tmp.real();
                 ftarget[i * 2 + 1] = tmp.imag();
             }
@@ -250,7 +285,7 @@ int SoapyRTLSDR::readStream(
         {
             for (size_t i = 0; i < returnedElems; i++)
             {
-                tmp = _lut_swap_16i[*((uint16_t*) &_nowBuff[buffer_ofs + 2 * i])];
+                tmp = _lut_swap_16i[*((uint16_t*) &_currentBuff[2 * i])];
                 itarget[i * 2] = tmp.real();
                 itarget[i * 2 + 1] = tmp.imag();
             }
@@ -259,7 +294,7 @@ int SoapyRTLSDR::readStream(
         {
             for (size_t i = 0; i < returnedElems; i++)
             {
-                tmp = _lut_16i[*((uint16_t*) &_nowBuff[buffer_ofs + 2 * i])];
+                tmp = _lut_16i[*((uint16_t*) &_currentBuff[2 * i])];
                 itarget[i * 2] = tmp.real();
                 itarget[i * 2 + 1] = tmp.imag();
             }
@@ -272,24 +307,25 @@ int SoapyRTLSDR::readStream(
         {
             for (size_t i = 0; i < returnedElems; i++)
             {
-                itarget[i * 2] = _nowBuff[buffer_ofs + i * 2 + 1]-127;
-                itarget[i * 2 + 1] = _nowBuff[buffer_ofs + i * 2]-127;
+                itarget[i * 2] = _currentBuff[i * 2 + 1]-127;
+                itarget[i * 2 + 1] = _currentBuff[i * 2]-127;
             }
         }
         else
         {
             for (size_t i = 0; i < returnedElems; i++)
             {
-                itarget[i * 2] = _nowBuff[buffer_ofs + i * 2]-127;
-                itarget[i * 2 + 1] = _nowBuff[buffer_ofs + i * 2 + 1]-127;
+                itarget[i * 2] = _currentBuff[i * 2]-127;
+                itarget[i * 2 + 1] = _currentBuff[i * 2 + 1]-127;
             }
         }
     }
 
     //bump variables for next call into readStream
     bufferedElems -= returnedElems;
-    bufferedElemOffset += returnedElems;
+    _currentBuff += returnedElems*BYTES_PER_SAMPLE;
 
     //return number of elements written to buff0
+    if (bufferedElems != 0) flags |= SOAPY_SDR_MORE_FRAGMENTS;
     return returnedElems;
 }
