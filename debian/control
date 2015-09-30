@@ -15,6 +15,8 @@ Vcs-Browser: https://github.com/pothosware/SoapyRTLSDR
 Package: soapysdr-rtlsdr
 Section: libs
 Architecture: any
+Conflicts: soapyosmo-rtlsdr
+Replaces: soapyosmo-rtlsdr
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Soapy RTL-SDR - RTL-SDR device support for Soapy SDR.
  A Soapy module that supports RTL-SDR devices within the Soapy API.
