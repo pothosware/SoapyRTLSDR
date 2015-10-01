@@ -33,6 +33,9 @@ if(CMAKE_COMPILER_IS_GNUCXX)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
     endif()
 
+    #Thread support enabled (not the same as -lpthread)
+    list(APPEND RTLSDR_LIBRARIES -pthread)
+
     #disable warnings for unused parameters
     add_definitions(-Wno-unused-parameter)
 
