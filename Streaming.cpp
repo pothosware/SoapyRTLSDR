@@ -104,6 +104,84 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
         }
     }
 
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR opening device %d", deviceId);
+    rtlsdr_open(&dev, deviceId);
+
+    if (args.count("buflen") != 0)
+    {
+        try
+        {
+            int bufferLength_in = std::stoi(args.at("buflen"));
+            if (bufferLength_in > 0)
+            {
+                bufferLength = bufferLength_in;
+            }
+        }
+        catch (const std::invalid_argument &){}
+    }
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using buffer length %d", bufferLength);
+
+    if (args.count("buffers") != 0)
+    {
+        try
+        {
+            int numBuffers_in = std::stoi(args.at("buffers"));
+            if (numBuffers_in > 0)
+            {
+                numBuffers = numBuffers_in;
+            }
+        }
+        catch (const std::invalid_argument &){}
+    }
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using %d buffers", numBuffers);
+
+    if (args.count("direct_samp") != 0)
+    {
+        try
+        {
+            directSamplingMode = std::stoi(args.at("direct_samp"));
+        }
+        catch (const std::invalid_argument &){}
+    }
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR direct sampling mode %d", directSamplingMode);
+
+    if (args.count("iq_swap") != 0)
+    {
+        try
+        {
+            iqSwap = std::stoi(args.at("iq_swap"))? true : false;
+        }
+        catch (const std::invalid_argument &){}
+    }
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR I/Q swap: %s", iqSwap ? "Yes" : "No");
+
+    if (args.count("offset_tune") != 0)
+    {
+        try
+        {
+            offsetMode = std::stoi(args.at("offset_tune"))? true : false;
+        }
+        catch (const std::invalid_argument &){}
+    }
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR offset_tune mode: %s", offsetMode ? "Yes" : "No");
+    rtlsdr_set_offset_tuning(dev, offsetMode ? 1 : 0);
+
+    if (args.count("corr") != 0)
+    {
+        try
+        {
+            ppm = std::stoi(args.at("corr"));
+        }
+        catch (const std::invalid_argument &){}
+    }
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR PPM: %d", ppm);
+
+    for (int i = 0; i < 6; i++)
+    {
+        IFGain[i] = 0;
+    }
+    tunerGain = rtlsdr_get_tuner_gain(dev);
+
     //clear async fifo counts
     _buf_tail = 0;
     _buf_count = 0;
@@ -120,6 +198,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
 void SoapyRTLSDR::closeStream(SoapySDR::Stream *stream)
 {
     _buffs.clear();
+    rtlsdr_close(dev);
 }
 
 size_t SoapyRTLSDR::getStreamMTU(SoapySDR::Stream *stream) const
