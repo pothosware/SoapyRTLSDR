@@ -110,23 +110,21 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
         throw std::runtime_error("Unable to find requested RTL-SDR device.");
     }
 
-    if (deviceId == -1)
-    {
-        deviceId = 0;
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Using first RTL-SDR Device #0: %s",
-                SoapyRTLSDR::rtl_devices[deviceId].at("label").c_str());
-    }
-
     if (args.count("tuner") != 0)
     {
         tunerType = rtlStringToTuner(args.at("tuner"));
     }
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Tuner type: %s", rtlTunerToString(tunerType).c_str());
+
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR opening device %d", deviceId);
+
+    rtlsdr_open(&dev, deviceId);
 }
 
 SoapyRTLSDR::~SoapyRTLSDR(void)
 {
     //cleanup device handles
+    rtlsdr_close(dev);
 }
 
 /*******************************************************************
@@ -154,7 +152,6 @@ SoapySDR::Kwargs SoapyRTLSDR::getHardwareInfo(void) const
     args["iq_swap"] = iqSwap ? "1" : "0";
     args["num_buffers"] = std::to_string(numBuffers);
     args["buflen"] = std::to_string(bufferLength);
-    args["corr"] = std::to_string(ppm);
     args["_help"] =
             "SoapyRTLSDR Driver\n Address:\t https://github.com/pothosware/SoapyRTLSDR\n\
  Buffer Size\t [bufflen]: default "
@@ -163,8 +160,7 @@ SoapySDR::Kwargs SoapyRTLSDR::getHardwareInfo(void) const
                     + "\n\
  Direct Sampling [direct_samp]: 0 = Off, 1 = I ADC, 2 = Q ADC\n\
  Offset Tuning\t [offset_tune]: 0 = Off, 1 = On\n\
- Swap I/Q\t [iq_swap]: 0 = Off, 1 = On\n\
- Freq Correction [corr]: Default 0 (parts per million)\n";
+ Swap I/Q\t [iq_swap]: 0 = Off, 1 = On\n";
 
     return args;
 }
@@ -333,6 +329,19 @@ void SoapyRTLSDR::setFrequency(
         ppm = (int) frequency;
         rtlsdr_set_freq_correction(dev, ppm);
     }
+
+    if (args.count("offset_tune") != 0)
+    {
+        try
+        {
+            offsetMode = std::stoi(args.at("offset_tune"))? true : false;
+        }
+        catch (const std::invalid_argument &){}
+
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR offset_tune mode: %s", offsetMode ? "Yes" : "No");
+        rtlsdr_set_offset_tuning(dev, offsetMode ? 1 : 0);
+    }
+
 }
 
 double SoapyRTLSDR::getFrequency(const int direction, const size_t channel, const std::string &name) const
