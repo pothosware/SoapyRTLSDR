@@ -1,5 +1,5 @@
 soapyrtlsdr (0.1.0) unstable; urgency=low
 
-  * pending
+  * Initial release of Soapy RTL-SDR support module
 
- -- Josh Blum <josh@pothosware.com>  Wed, 23 Sep 2015 13:45:52 -0700
+ -- Josh Blum <josh@pothosware.com>  Sat, 10 Oct 2015 11:19:07 -0700
