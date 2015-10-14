@@ -231,6 +231,11 @@ std::vector<std::string> SoapyRTLSDR::listGains(const int direction, const size_
     return results;
 }
 
+bool SoapyRTLSDR::hasGainMode(const int direction, const size_t channel) const
+{
+    return true;
+}
+
 void SoapyRTLSDR::setGainMode(const int direction, const size_t channel, const bool automatic)
 {
     agcMode = automatic;
