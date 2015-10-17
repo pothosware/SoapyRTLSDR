@@ -1,3 +1,9 @@
+soapyrtlsdr (0.2.0) unstable; urgency=low
+
+  * Added support for the direct access buffer API
+
+ -- Josh Blum <josh@pothosware.com>  Fri, 16 Oct 2015 18:40:55 -0700
+
 soapyrtlsdr (0.1.0) unstable; urgency=low
 
   * Initial release of Soapy RTL-SDR support module
