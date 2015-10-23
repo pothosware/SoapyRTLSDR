@@ -98,6 +98,26 @@ public:
             const long timeoutUs = 100000);
 
     /*******************************************************************
+     * Direct buffer access API
+     ******************************************************************/
+
+    size_t getNumDirectAccessBuffers(SoapySDR::Stream *stream);
+
+    int getDirectAccessBufferAddrs(SoapySDR::Stream *stream, const size_t handle, void **buffs);
+
+    int acquireReadBuffer(
+        SoapySDR::Stream *stream,
+        size_t &handle,
+        const void **buffs,
+        int &flags,
+        long long &timeNs,
+        const long timeoutUs = 100000);
+
+    void releaseReadBuffer(
+        SoapySDR::Stream *stream,
+        const size_t handle);
+
+    /*******************************************************************
      * Antenna API
      ******************************************************************/
 
@@ -118,6 +138,8 @@ public:
      ******************************************************************/
 
     std::vector<std::string> listGains(const int direction, const size_t channel) const;
+
+    bool hasGainMode(const int direction, const size_t channel) const;
 
     void setGainMode(const int direction, const size_t channel, const bool automatic);
 
@@ -199,10 +221,6 @@ private:
     bool iqSwap, agcMode, offsetMode;
     double IFGain[6], tunerGain;
 
-    // buffers
-    size_t bufferedElems;
-    bool resetBuffer;
-
     std::vector<std::complex<float> > _lut_32f;
     std::vector<std::complex<float> > _lut_swap_32f;
     std::vector<std::complex<int16_t> > _lut_16i;
@@ -223,6 +241,9 @@ public:
     size_t	_buf_count;
     signed char *_currentBuff;
     bool _overflowEvent;
+    size_t _currentHandle;
+    size_t bufferedElems;
+    bool resetBuffer;
 
     static int rtl_count;
     static std::vector<SoapySDR::Kwargs> rtl_devices;
