@@ -28,6 +28,59 @@
 #include <climits> //SHRT_MAX
 #include <cstring> // memcpy
 
+
+std::vector<std::string> SoapyRTLSDR::getStreamFormats(const int direction, const size_t channel) const {
+    std::vector<std::string> formats;
+
+    formats.push_back("CS8");
+    formats.push_back("CS16");
+    formats.push_back("CF32");
+
+    return formats;
+}
+
+std::string SoapyRTLSDR::getNativeStreamFormat(const int direction, const size_t channel, double &fullScale) const {
+    //check that direction is SOAPY_SDR_RX
+     if (direction != SOAPY_SDR_RX) {
+         throw std::runtime_error("RTL-SDR is RX only, use SOAPY_SDR_RX");
+     }
+
+     fullScale = 128;
+     return "CS8";
+}
+
+SoapySDR::ArgInfoList SoapyRTLSDR::getStreamArgsInfo(const int direction, const size_t channel) const {
+    //check that direction is SOAPY_SDR_RX
+     if (direction != SOAPY_SDR_RX) {
+         throw std::runtime_error("RTL-SDR is RX only, use SOAPY_SDR_RX");
+     }
+
+    SoapySDR::ArgInfoList streamArgs;
+
+    SoapySDR::ArgInfo bufflenArg;
+    bufflenArg.key = "bufflen";
+    bufflenArg.value = "16384";
+    bufflenArg.name = "Buffer Size";
+    bufflenArg.description = "Number of bytes per buffer, multiples of 512 only.";
+    bufflenArg.units = "bytes";
+    bufflenArg.type = SoapySDR::ArgInfo::INT;
+
+    streamArgs.push_back(bufflenArg);
+
+    SoapySDR::ArgInfo buffersArg;
+    buffersArg.key = "buffers";
+    buffersArg.value = "15";
+    buffersArg.name = "Buffer Count";
+    buffersArg.description = "Number of buffers per read.";
+    buffersArg.units = "buffers";
+    buffersArg.type = SoapySDR::ArgInfo::INT;
+
+    streamArgs.push_back(buffersArg);
+
+    return streamArgs;
+}
+
+
 SoapySDR::Stream *SoapyRTLSDR::setupStream(
         const int direction,
         const std::string &format,
@@ -132,27 +185,6 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
         catch (const std::invalid_argument &){}
     }
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using %d buffers", numBuffers);
-
-    if (args.count("direct_samp") != 0)
-    {
-        try
-        {
-            directSamplingMode = std::stoi(args.at("direct_samp"));
-        }
-        catch (const std::invalid_argument &){}
-    }
-    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR direct sampling mode %d", directSamplingMode);
-    rtlsdr_set_direct_sampling(dev, directSamplingMode);
-
-    if (args.count("iq_swap") != 0)
-    {
-        try
-        {
-            iqSwap = std::stoi(args.at("iq_swap"))? true : false;
-        }
-        catch (const std::invalid_argument &){}
-    }
-    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR I/Q swap: %s", iqSwap ? "Yes" : "No");
 
     for (int i = 0; i < 6; i++)
     {

@@ -25,6 +25,7 @@
 
 #include <SoapySDR/Device.hpp>
 #include <SoapySDR/Logger.h>
+#include <SoapySDR/Types.h>
 #include <rtl-sdr.h>
 #include <stdexcept>
 #include <thread>
@@ -66,6 +67,12 @@ public:
     /*******************************************************************
      * Stream API
      ******************************************************************/
+
+    std::vector<std::string> getStreamFormats(const int direction, const size_t channel) const;
+
+    std::string getNativeStreamFormat(const int direction, const size_t channel, double &fullScale) const;
+
+    SoapySDR::ArgInfoList getStreamArgsInfo(const int direction, const size_t channel) const;
 
     SoapySDR::Stream *setupStream(const int direction, const std::string &format, const std::vector<size_t> &channels =
             std::vector<size_t>(), const SoapySDR::Kwargs &args = SoapySDR::Kwargs());
@@ -141,6 +148,8 @@ public:
 
     SoapySDR::RangeList getFrequencyRange(const int direction, const size_t channel, const std::string &name) const;
 
+    SoapySDR::ArgInfoList getFrequencyArgsInfo(const int direction, const size_t channel) const;
+
     /*******************************************************************
      * Sample Rate API
      ******************************************************************/
@@ -163,6 +172,17 @@ public:
 
     static std::string rtlTunerToString(rtlsdr_tuner tunerType);
     static rtlsdr_tuner rtlStringToTuner(std::string tunerType);
+
+
+    /*******************************************************************
+     * Settings API
+     ******************************************************************/
+
+    SoapySDR::ArgInfoList getSettingInfo(void) const;
+
+    void writeSetting(const std::string &key, const std::string &value);
+
+    std::string readSetting(const std::string &key) const;
 
 private:
 
