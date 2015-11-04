@@ -440,9 +440,14 @@ SoapySDR::ArgInfoList SoapyRTLSDR::getSettingInfo(void) const
     directSampArg.key = "direct_samp";
     directSampArg.value = "0";
     directSampArg.name = "Direct Sampling";
-    directSampArg.description = "RTL-SDR Direct Sampling Mode, 0 = Off, 1 = I ADC, 2 = Q ADC";
-    directSampArg.type = SoapySDR::ArgInfo::INT;
-    directSampArg.range = SoapySDR::Range(0, 2);
+    directSampArg.description = "RTL-SDR Direct Sampling Mode";
+    directSampArg.type = SoapySDR::ArgInfo::STRING;
+    directSampArg.options.push_back("0");
+    directSampArg.optionNames.push_back("Off");
+    directSampArg.options.push_back("1");
+    directSampArg.optionNames.push_back("I-ADC");
+    directSampArg.options.push_back("2");
+    directSampArg.optionNames.push_back("Q-ADC");
 
     setArgs.push_back(directSampArg);
 
@@ -473,7 +478,6 @@ SoapySDR::ArgInfoList SoapyRTLSDR::getSettingInfo(void) const
 
 void SoapyRTLSDR::writeSetting(const std::string &key, const std::string &value)
 {
-
     if (key == "direct_samp")
     {
         try
@@ -498,17 +502,16 @@ void SoapyRTLSDR::writeSetting(const std::string &key, const std::string &value)
         SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR offset_tune mode: %s", offsetMode ? "true" : "false");
         rtlsdr_set_offset_tuning(dev, offsetMode ? 1 : 0);
     }
-
-
 }
 
 std::string SoapyRTLSDR::readSetting(const std::string &key) const
 {
     if (key == "direct_samp") {
-        return directSamplingMode?"true":"false";
-    }
-    if (key == "iq_swap") {
+        return std::to_string(directSamplingMode);
+    } else if (key == "iq_swap") {
         return iqSwap?"true":"false";
+    } else if (key == "offset_tune") {
+        return offsetMode?"true":"false";
     }
 
     SoapySDR_logf(SOAPY_SDR_WARNING, "Unknown setting '%s'", key.c_str());
