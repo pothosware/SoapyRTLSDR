@@ -458,7 +458,6 @@ SoapySDR::ArgInfoList SoapyRTLSDR::getSettingInfo(void) const
     offsetTuneArg.name = "Offset Tune";
     offsetTuneArg.description = "RTL-SDR Offset Tuning Mode";
     offsetTuneArg.type = SoapySDR::ArgInfo::BOOL;
-    offsetTuneArg.range = SoapySDR::Range(0,2);
     setArgs.push_back(offsetTuneArg);
 
     SoapySDR::ArgInfo iqSwapArg;
