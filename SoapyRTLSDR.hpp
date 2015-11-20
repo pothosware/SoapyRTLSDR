@@ -25,6 +25,7 @@
 
 #include <SoapySDR/Device.hpp>
 #include <SoapySDR/Logger.h>
+#include <SoapySDR/Types.h>
 #include <rtl-sdr.h>
 #include <stdexcept>
 #include <thread>
@@ -67,6 +68,12 @@ public:
      * Stream API
      ******************************************************************/
 
+    std::vector<std::string> getStreamFormats(const int direction, const size_t channel) const;
+
+    std::string getNativeStreamFormat(const int direction, const size_t channel, double &fullScale) const;
+
+    SoapySDR::ArgInfoList getStreamArgsInfo(const int direction, const size_t channel) const;
+
     SoapySDR::Stream *setupStream(const int direction, const std::string &format, const std::vector<size_t> &channels =
             std::vector<size_t>(), const SoapySDR::Kwargs &args = SoapySDR::Kwargs());
 
@@ -91,6 +98,26 @@ public:
             const long timeoutUs = 100000);
 
     /*******************************************************************
+     * Direct buffer access API
+     ******************************************************************/
+
+    size_t getNumDirectAccessBuffers(SoapySDR::Stream *stream);
+
+    int getDirectAccessBufferAddrs(SoapySDR::Stream *stream, const size_t handle, void **buffs);
+
+    int acquireReadBuffer(
+        SoapySDR::Stream *stream,
+        size_t &handle,
+        const void **buffs,
+        int &flags,
+        long long &timeNs,
+        const long timeoutUs = 100000);
+
+    void releaseReadBuffer(
+        SoapySDR::Stream *stream,
+        const size_t handle);
+
+    /*******************************************************************
      * Antenna API
      ******************************************************************/
 
@@ -111,6 +138,8 @@ public:
      ******************************************************************/
 
     std::vector<std::string> listGains(const int direction, const size_t channel) const;
+
+    bool hasGainMode(const int direction, const size_t channel) const;
 
     void setGainMode(const int direction, const size_t channel, const bool automatic);
 
@@ -141,6 +170,8 @@ public:
 
     SoapySDR::RangeList getFrequencyRange(const int direction, const size_t channel, const std::string &name) const;
 
+    SoapySDR::ArgInfoList getFrequencyArgsInfo(const int direction, const size_t channel) const;
+
     /*******************************************************************
      * Sample Rate API
      ******************************************************************/
@@ -164,6 +195,17 @@ public:
     static std::string rtlTunerToString(rtlsdr_tuner tunerType);
     static rtlsdr_tuner rtlStringToTuner(std::string tunerType);
 
+
+    /*******************************************************************
+     * Settings API
+     ******************************************************************/
+
+    SoapySDR::ArgInfoList getSettingInfo(void) const;
+
+    void writeSetting(const std::string &key, const std::string &value);
+
+    std::string readSetting(const std::string &key) const;
+
 private:
 
     //device handle
@@ -178,10 +220,6 @@ private:
     size_t numBuffers, bufferLength;
     bool iqSwap, agcMode, offsetMode;
     double IFGain[6], tunerGain;
-
-    // buffers
-    size_t bufferedElems;
-    bool resetBuffer;
 
     std::vector<std::complex<float> > _lut_32f;
     std::vector<std::complex<float> > _lut_swap_32f;
@@ -203,6 +241,9 @@ public:
     size_t	_buf_count;
     signed char *_currentBuff;
     bool _overflowEvent;
+    size_t _currentHandle;
+    size_t bufferedElems;
+    bool resetBuffer;
 
     static int rtl_count;
     static std::vector<SoapySDR::Kwargs> rtl_devices;

@@ -4,7 +4,7 @@
 cmake_minimum_required(VERSION 2.8.7)
 project(SoapyRTLSDR CXX)
 
-find_package(SoapySDR NO_MODULE)
+find_package(SoapySDR "0.4.0" NO_MODULE REQUIRED)
 if (NOT SoapySDR_FOUND)
     message(FATAL_ERROR "Soapy SDR development files not found...")
 endif ()
@@ -45,6 +45,8 @@ if (APPLE)
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wc++11-extensions")
 endif(APPLE)
 
+set(OTHER_LIBS "" CACHE STRING "Other libraries")
+
 SOAPY_SDR_MODULE_UTIL(
     TARGET rtlsdrSupport
     SOURCES
@@ -54,23 +56,5 @@ SOAPY_SDR_MODULE_UTIL(
         Streaming.cpp
     LIBRARIES
         ${RTLSDR_LIBRARIES}
+        ${OTHER_LIBS}
 )
-
-
-
-# IF (WIN32)
-#     include_directories( ${PROJECT_SOURCE_DIR}/external/rtl-sdr-release )
-#     IF (MSVC)
-#       # RTL-SDR
-#       IF(USE_RTL_SDR)
-#           link_directories ( ${PROJECT_SOURCE_DIR}/external/rtl-sdr-release/msvc/${EX_PLATFORM} )
-#           configure_files(${PROJECT_SOURCE_DIR}/external/rtl-sdr-release/msvc/${EX_PLATFORM} ${CMAKE_BINARY_DIR}/${EX_PLATFORM_NAME} "*.dll")
-#       ENDIF()
-#     ELSE (MSVC) # GCC
-#       # RTL-SDR
-#       IF(USE_RTL_SDR)
-#           link_directories ( ${PROJECT_SOURCE_DIR}/external/rtl-sdr-release/gcc/${EX_PLATFORM} )
-#           configure_files(${PROJECT_SOURCE_DIR}/external/rtl-sdr-release/gcc/${EX_PLATFORM} ${CMAKE_BINARY_DIR}/${EX_PLATFORM_NAME} "*.dll")
-#       ENDIF()
-#     ENDIF(MSVC)
-# ENDIF (WIN32)
