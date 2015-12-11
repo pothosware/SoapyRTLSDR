@@ -1,5 +1,6 @@
 soapyrtlsdr (0.2.0) unstable; urgency=low
 
+  * Added device info arguments and device settings
   * Added support for the direct access buffer API
 
  -- Josh Blum <josh@pothosware.com>  Fri, 16 Oct 2015 18:40:55 -0700
