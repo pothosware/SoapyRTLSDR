@@ -1,7 +1,8 @@
 Source: soapyrtlsdr
 Section: libs
 Priority: optional
-Maintainer: Josh Blum <josh@pothosware.com>
+Maintainer: Charles J. Cliffe <cj@cubicproductions.com>
+Uploaders: Josh Blum <josh@pothosware.com>
 Build-Depends:
     debhelper (>= 9.0.0),
     cmake,
