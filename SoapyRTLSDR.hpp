@@ -194,6 +194,7 @@ public:
 
     static std::string rtlTunerToString(rtlsdr_tuner tunerType);
     static rtlsdr_tuner rtlStringToTuner(std::string tunerType);
+    static int getE4000Gain(int stage, int gain);
 
 
     /*******************************************************************

@@ -258,7 +258,11 @@ void SoapyRTLSDR::setGain(const int direction, const size_t channel, const std::
                 throw std::runtime_error("Invalid IF stage, 1 or 1-6 for E4000");
             }
         }
-        IFGain[stage - 1] = value;
+        if (tunerType == RTLSDR_TUNER_E4000) {
+            IFGain[stage - 1] = getE4000Gain(stage, (int)value);
+        } else {
+            IFGain[stage - 1] = value;
+        }
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR IF Gain for stage %d: %f", stage, IFGain[stage - 1]);
         rtlsdr_set_tuner_if_gain(dev, stage, (int) IFGain[stage - 1] * 10.0);
     }
@@ -284,6 +288,10 @@ double SoapyRTLSDR::getGain(const int direction, const size_t channel, const std
                 throw std::runtime_error("Invalid IF stage, 1 or 1-6 for E4000");
             }
         }
+        if (tunerType == RTLSDR_TUNER_E4000) {
+            return getE4000Gain(stage, IFGain[stage - 1]);
+        }
+
         return IFGain[stage - 1];
     }
 
@@ -297,7 +305,24 @@ double SoapyRTLSDR::getGain(const int direction, const size_t channel, const std
 
 SoapySDR::Range SoapyRTLSDR::getGainRange(const int direction, const size_t channel, const std::string &name) const
 {
-    return SoapySDR::Range(SoapyRTLSDR::gainMin, SoapyRTLSDR::gainMax);
+    if (tunerType == RTLSDR_TUNER_E4000 && name != "TUNER") {
+        if (name == "IF1") {
+            return SoapySDR::Range(-3, 6);
+        }
+        if (name == "IF2" || name == "IF3") {
+            return SoapySDR::Range(0, 9);
+        }
+        if (name == "IF4") {
+            return SoapySDR::Range(0, 2);
+        }
+        if (name == "IF5" || name == "IF6") {
+            return SoapySDR::Range(3, 15);
+        }
+
+        return SoapySDR::Range(SoapyRTLSDR::gainMin, SoapyRTLSDR::gainMax);
+    } else {
+        return SoapySDR::Range(SoapyRTLSDR::gainMin, SoapyRTLSDR::gainMax);
+    }
 }
 
 /*******************************************************************
@@ -357,7 +382,15 @@ SoapySDR::RangeList SoapyRTLSDR::getFrequencyRange(
     SoapySDR::RangeList results;
     if (name == "RF")
     {
-        results.push_back(SoapySDR::Range(27000000, 1764000000));
+        if (tunerType == RTLSDR_TUNER_E4000) {
+            results.push_back(SoapySDR::Range(52000000, 2200000000));
+        } else if (tunerType == RTLSDR_TUNER_FC0012) {
+            results.push_back(SoapySDR::Range(22000000, 1100000000));
+        } else if (tunerType == RTLSDR_TUNER_FC0013) {
+            results.push_back(SoapySDR::Range(22000000, 948600000));
+        } else {
+            results.push_back(SoapySDR::Range(24000000, 1764000000));
+        }
     }
     if (name == "CORR")
     {
@@ -548,6 +581,63 @@ std::string SoapyRTLSDR::rtlTunerToString(rtlsdr_tuner tunerType)
     }
     return deviceTuner;
 }
+
+int SoapyRTLSDR::getE4000Gain(int stage, int gain) {
+    static const int8_t if_stage1_gain[] = {
+            -3, 6
+    };
+
+    static const int8_t if_stage23_gain[] = {
+            0, 3, 6, 9
+    };
+
+    static const int8_t if_stage4_gain[] = {
+            0, 1, 2, 2
+    };
+
+    static const int8_t if_stage56_gain[] = {
+            3, 6, 9, 12, 15 // , 15, 15, 15 // wat?
+    };
+
+    const int8_t *if_stage = nullptr;
+    int n_gains = 0;
+
+    if (stage == 1) {
+        if_stage = if_stage1_gain;
+        n_gains = 2;
+    } else if (stage == 2 || stage == 3) {
+        if_stage = if_stage23_gain;
+        n_gains = 4;
+    } else if (stage == 4) {
+        if_stage = if_stage4_gain;
+        n_gains = 4;
+    } else if (stage == 5 || stage == 6) {
+        if_stage = if_stage56_gain;
+        n_gains = 5;
+    }
+
+    if (n_gains && if_stage) {
+        int gainMin = if_stage[0];
+        int gainMax = if_stage[n_gains-1];
+
+        if (gain > gainMax) {
+            gain = gainMax;
+        }
+
+        if (gain < gainMin) {
+            gain = gainMin;
+        }
+
+        for (int i = 0; i < n_gains-1; i++) {
+            if (gain >= if_stage[i] && gain <= if_stage[i+1]) {
+                gain = ((gain-if_stage[i]) < (if_stage[i+1]-gain))?if_stage[i]:if_stage[i+1];
+            }
+        }
+    }
+
+    return gain;
+}
+
 
 rtlsdr_tuner SoapyRTLSDR::rtlStringToTuner(std::string tunerType)
 {

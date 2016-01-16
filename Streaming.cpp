@@ -233,9 +233,17 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
     }
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using %d buffers", numBuffers);
 
-    for (int i = 0; i < 6; i++)
-    {
-        IFGain[i] = 0;
+    if (tunerType == RTLSDR_TUNER_E4000) {
+        IFGain[0] = 6;
+        IFGain[1] = 6;
+        IFGain[2] = 6;
+        IFGain[3] = 1;
+        IFGain[4] = 9;
+        IFGain[5] = 9;
+    } else {
+        for (int i = 0; i < 6; i++) {
+            IFGain[i] = 0;
+        }
     }
     tunerGain = rtlsdr_get_tuner_gain(dev);
 
