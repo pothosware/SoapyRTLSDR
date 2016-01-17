@@ -286,6 +286,8 @@ double SoapyRTLSDR::getGain(const int direction, const size_t channel, const std
             if ((stage_in < 1) || (stage_in > 6))
             {
                 throw std::runtime_error("Invalid IF stage, 1 or 1-6 for E4000");
+            } else {
+                stage = stage_in;
             }
         }
         if (tunerType == RTLSDR_TUNER_E4000) {
@@ -592,7 +594,7 @@ int SoapyRTLSDR::getE4000Gain(int stage, int gain) {
     };
 
     static const int8_t if_stage4_gain[] = {
-            0, 1, 2, 2
+            0, 1, 2 //, 2
     };
 
     static const int8_t if_stage56_gain[] = {
@@ -610,7 +612,7 @@ int SoapyRTLSDR::getE4000Gain(int stage, int gain) {
         n_gains = 4;
     } else if (stage == 4) {
         if_stage = if_stage4_gain;
-        n_gains = 4;
+        n_gains = 3;
     } else if (stage == 5 || stage == 6) {
         if_stage = if_stage56_gain;
         n_gains = 5;
