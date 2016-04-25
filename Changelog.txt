@@ -1,0 +1,16 @@
+Release 0.2.1 (pending)
+==========================
+
+- Fixes for E4000 and FC001x tuner types
+- Fixed debian control file Maintainer/Uploaders
+
+Release 0.2.0 (2015-12-10)
+==========================
+
+- Added device info arguments and device settings
+- Added support for the direct access buffer API
+
+Release 0.1.0 (2015-10-10)
+==========================
+
+- Initial release of Soapy RTL-SDR support module

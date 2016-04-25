@@ -1,18 +1,11 @@
-soapyrtlsdr (0.2.1) unstable; urgency=low
-
-  * Fixed debian control file Maintainer/Uploaders
-
- -- Josh Blum <josh@pothosware.com>  Mon, 04 Jan 2016 16:46:55 -0800
-
 soapyrtlsdr (0.2.0) unstable; urgency=low
 
-  * Added device info arguments and device settings
-  * Added support for the direct access buffer API
+  * Release 0.2.0 (2015-12-10)
 
  -- Josh Blum <josh@pothosware.com>  Fri, 16 Oct 2015 18:40:55 -0700
 
 soapyrtlsdr (0.1.0) unstable; urgency=low
 
-  * Initial release of Soapy RTL-SDR support module
+  * Release 0.1.0 (2015-10-10)
 
  -- Josh Blum <josh@pothosware.com>  Sat, 10 Oct 2015 11:19:07 -0700
