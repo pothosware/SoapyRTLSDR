@@ -1,4 +1,4 @@
-Release 0.2.1 (pending)
+Release 0.2.1 (2016-04-25)
 ==========================
 
 - Fixes for E4000 and FC001x tuner types
