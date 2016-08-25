@@ -174,10 +174,17 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
         for (unsigned int i = 0; i <= 0xffff; i++)
         {
 # if (__BYTE_ORDER == __LITTLE_ENDIAN)
+            float re = ((i & 0xff) - 127.4f) * (1.0f / 128.0f);
+            float im = ((i >> 8) - 127.4f) * (1.0f / 128.0f);
+#else
+            float re = ((i >> 8) - 127.4f) * (1.0f / 128.0f);
+            float im = ((i & 0xff) - 127.4f) * (1.0f / 128.0f);
+#endif
+
             std::complex<float> v32f, vs32f;
 
-            v32f.real((float(i & 0xff) - 127.4f) * (1.0f / 128.0f));
-            v32f.imag((float(i >> 8) - 127.4f) * (1.0f / 128.0f));
+            v32f.real(re);
+            v32f.imag(im);
             _lut_32f.push_back(v32f);
 
             vs32f.real(v32f.imag());
@@ -186,21 +193,13 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
 
             std::complex<int16_t> v16i, vs16i;
 
-            v16i.real(int16_t((float(SHRT_MAX) * ((float(i & 0xff) - 127.4f) * (1.0f / 128.0f)))));
-            v16i.imag(int16_t((float(SHRT_MAX) * ((float(i >> 8) - 127.4f) * (1.0f / 128.0f)))));
+            v16i.real(int16_t((float(SHRT_MAX) * re)));
+            v16i.imag(int16_t((float(SHRT_MAX) * im)));
             _lut_16i.push_back(v16i);
 
             vs16i.real(vs16i.imag());
             vs16i.imag(vs16i.real());
             _lut_swap_16i.push_back(vs16i);
-
-#else // BIG_ENDIAN
-#error  TODO
-            //        tmp_swap.imag = tmp.real = (float(i >> 8) - 127.4f) * (1.0f/128.0f);
-            //        tmp_swap.real = tmp.imag = (float(i & 0xff) - 127.4f) * (1.0f/128.0f);
-            //        _lut.push_back(tmp);
-            //        _lut_swap.push_back(tmp_swap);
-#endif
         }
     }
 
