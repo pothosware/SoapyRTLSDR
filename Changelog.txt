@@ -1,3 +1,8 @@
+Release 0.2.2 (pending)
+==========================
+
+- Fix build failure on all big endian architectures
+
 Release 0.2.1 (2016-04-25)
 ==========================
 
