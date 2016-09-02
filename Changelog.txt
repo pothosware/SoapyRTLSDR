@@ -1,4 +1,4 @@
-Release 0.2.2 (pending)
+Release 0.2.2 (2016-09-01)
 ==========================
 
 - Update debian files for SoapySDR module ABI format
