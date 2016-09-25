@@ -31,6 +31,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <atomic>
 
 typedef enum rtlsdrRXFormat
 {
@@ -239,9 +240,9 @@ public:
     std::vector<std::vector<signed char> > _buffs;
     size_t	_buf_head;
     size_t	_buf_tail;
-    size_t	_buf_count;
+    std::atomic<size_t>	_buf_count;
     signed char *_currentBuff;
-    bool _overflowEvent;
+    std::atomic<bool> _overflowEvent;
     size_t _currentHandle;
     size_t bufferedElems;
     bool resetBuffer;

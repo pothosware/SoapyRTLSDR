@@ -1,6 +1,7 @@
 Release 0.2.3 (pending)
 ==========================
 
+- Use atomics for ring buffer implementation
 - Use Format string constants for stream types
 
 Release 0.2.2 (2016-09-01)
