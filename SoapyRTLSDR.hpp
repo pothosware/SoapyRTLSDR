@@ -233,6 +233,9 @@ public:
     std::thread _rx_async_thread;
     void rx_async_operation(void);
     void rx_callback(unsigned char *buf, uint32_t len);
+    std::atomic<bool> _rx_streaming;
+    std::atomic<unsigned char *> _rx_buffer;
+    std::atomic<size_t> _rx_numbytes;
 
     std::mutex _buf_mutex;
     std::condition_variable _buf_cond;

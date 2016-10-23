@@ -103,30 +103,14 @@ void SoapyRTLSDR::rx_callback(unsigned char *buf, uint32_t len)
 {
     //printf("_rx_callback %d _buf_head=%d, numBuffers=%d\n", len, _buf_head, _buf_tail);
 
-    //overflow condition: the caller is not reading fast enough
-    if (_buf_count == numBuffers)
-    {
-        _overflowEvent = true;
-        return;
-    }
-
-    //copy into the buffer queue
-    auto &buff = _buffs[_buf_tail];
-    buff.resize(len);
-    std::memcpy(buff.data(), buf, len);
-
-    //increment the tail pointer
-    _buf_tail = (_buf_tail + 1) % numBuffers;
-
-    //increment buffers available under lock
-    //to avoid race in acquireReadBuffer wait
-    {
-        std::lock_guard<std::mutex> lock(_buf_mutex);
-        _buf_count++;
-    }
-
-    //notify readStream()
+    //pass the buffer and length, notify in case reader is waiting
+    _rx_buffer = buf;
+    _rx_numbytes = len;
     _buf_cond.notify_one();
+
+    //wait for the reader to clear the number of bytes back to zero
+    std::unique_lock <std::mutex> lock(_buf_mutex);
+    _buf_cond.wait(lock, [this]{return not _rx_streaming or _rx_numbytes == 0;});
 }
 
 /*******************************************************************
@@ -284,6 +268,10 @@ int SoapyRTLSDR::activateStream(
     resetBuffer = true;
     bufferedElems = 0;
 
+    _rx_buffer = nullptr;
+    _rx_numbytes = 0;
+    _rx_streaming = true;
+
     //start the async thread
     if (not _rx_async_thread.joinable())
     {
@@ -297,6 +285,11 @@ int SoapyRTLSDR::activateStream(
 int SoapyRTLSDR::deactivateStream(SoapySDR::Stream *stream, const int flags, const long long timeNs)
 {
     if (flags != 0) return SOAPY_SDR_NOT_SUPPORTED;
+
+    //release the callback (if it was waiting on cond)
+    _rx_streaming = false;
+    _buf_cond.notify_one();
+
     if (_rx_async_thread.joinable())
     {
         rtlsdr_cancel_async(dev);
@@ -410,12 +403,12 @@ int SoapyRTLSDR::readStream(
 
 size_t SoapyRTLSDR::getNumDirectAccessBuffers(SoapySDR::Stream *stream)
 {
-    return _buffs.size();
+    return 0;
 }
 
 int SoapyRTLSDR::getDirectAccessBufferAddrs(SoapySDR::Stream *stream, const size_t handle, void **buffs)
 {
-    buffs[0] = (void *)_buffs[handle].data();
+    buffs[0] = (void *)_rx_buffer;
     return 0;
 }
 
@@ -427,48 +420,32 @@ int SoapyRTLSDR::acquireReadBuffer(
     long long &timeNs,
     const long timeoutUs)
 {
-    //reset is issued by various settings
-    //to drain old data out of the queue
-    if (resetBuffer)
-    {
-        //drain all buffers from the fifo
-        _buf_head = (_buf_head + _buf_count.exchange(0)) % numBuffers;
-        resetBuffer = false;
-        _overflowEvent = false;
-    }
+    //the only buffer was already claimed
+    if (_rx_numbytes != 0) return SOAPY_SDR_STREAM_ERROR;
 
-    //handle overflow from the rx callback thread
-    if (_overflowEvent)
-    {
-        //drain the old buffers from the fifo
-        _buf_head = (_buf_head + _buf_count.exchange(0)) % numBuffers;
-        _overflowEvent = false;
-        SoapySDR::log(SOAPY_SDR_SSI, "O");
-        return SOAPY_SDR_OVERFLOW;
-    }
-
-    //wait for a buffer to become available
-    if (_buf_count == 0)
+    //wait on the condition when there is no buffer is available
+    if (_rx_numbytes == 0)
     {
         std::unique_lock <std::mutex> lock(_buf_mutex);
-        _buf_cond.wait_for(lock, std::chrono::microseconds(timeoutUs), [this]{return _buf_count != 0;});
-        if (_buf_count == 0) return SOAPY_SDR_TIMEOUT;
+        if (not _buf_cond.wait_for(lock, std::chrono::microseconds(timeoutUs), [this]{return _rx_numbytes != 0;}))
+        {
+            return SOAPY_SDR_TIMEOUT;
+        }
     }
 
-    //extract handle and buffer
-    handle = _buf_head;
-    _buf_head = (_buf_head + 1) % numBuffers;
-    buffs[0] = (void *)_buffs[handle].data();
+    //callback gave us a buffer, load variables and return
     flags = 0;
-
-    //return number available
-    return _buffs[handle].size() / BYTES_PER_SAMPLE;
+    timeNs = 0;
+    handle = 0;
+    buffs[0] = _rx_buffer;
+    return _rx_numbytes/BYTES_PER_SAMPLE;
 }
 
 void SoapyRTLSDR::releaseReadBuffer(
     SoapySDR::Stream *stream,
     const size_t handle)
 {
-    //TODO this wont handle out of order releases
-    _buf_count--;
+    _rx_buffer = nullptr;
+    _rx_numbytes = 0;
+    _buf_cond.notify_one();
 }
