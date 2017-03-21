@@ -2,6 +2,7 @@
  * The MIT License (MIT)
  * 
  * Copyright (c) 2015 Charles J. Cliffe
+ * Copyright (c) 2015-2017 Josh Blum
 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +39,7 @@ typedef enum rtlsdrRXFormat
     RTL_RX_FORMAT_FLOAT32, RTL_RX_FORMAT_INT16, RTL_RX_FORMAT_INT8
 } rtlsdrRXFormat;
 
-#define DEFAULT_BUFFER_LENGTH 16384
+#define DEFAULT_BUFFER_LENGTH (16 * 32 * 512)
 #define DEFAULT_NUM_BUFFERS 15
 #define BYTES_PER_SAMPLE 2
 
@@ -219,7 +220,7 @@ private:
     rtlsdr_tuner tunerType;
     uint32_t sampleRate, centerFrequency;
     int ppm, directSamplingMode;
-    size_t numBuffers, bufferLength;
+    size_t numBuffers, bufferLength, asyncBuffs;
     bool iqSwap, agcMode, offsetMode;
     double IFGain[6], tunerGain;
 

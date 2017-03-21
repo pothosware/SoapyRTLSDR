@@ -1,6 +1,8 @@
 Release 0.2.3 (pending)
 ==========================
 
+- Separate buffer count for ring buffer and usb
+- Larger buffer size - same as rtl defaults
 - Use atomics for ring buffer implementation
 - Use Format string constants for stream types
 

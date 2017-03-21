@@ -2,6 +2,7 @@
  * The MIT License (MIT)
  * 
  * Copyright (c) 2015 Charles J. Cliffe
+ * Copyright (c) 2015-2017 Josh Blum
 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -60,7 +61,7 @@ SoapySDR::ArgInfoList SoapyRTLSDR::getStreamArgsInfo(const int direction, const 
 
     SoapySDR::ArgInfo bufflenArg;
     bufflenArg.key = "bufflen";
-    bufflenArg.value = "16384";
+    bufflenArg.value = std::to_string(DEFAULT_BUFFER_LENGTH);
     bufflenArg.name = "Buffer Size";
     bufflenArg.description = "Number of bytes per buffer, multiples of 512 only.";
     bufflenArg.units = "bytes";
@@ -70,13 +71,23 @@ SoapySDR::ArgInfoList SoapyRTLSDR::getStreamArgsInfo(const int direction, const 
 
     SoapySDR::ArgInfo buffersArg;
     buffersArg.key = "buffers";
-    buffersArg.value = "15";
-    buffersArg.name = "Buffer Count";
-    buffersArg.description = "Number of buffers per read.";
+    buffersArg.value = std::to_string(DEFAULT_NUM_BUFFERS);
+    buffersArg.name = "Ring buffers";
+    buffersArg.description = "Number of buffers in the ring.";
     buffersArg.units = "buffers";
     buffersArg.type = SoapySDR::ArgInfo::INT;
 
     streamArgs.push_back(buffersArg);
+
+    SoapySDR::ArgInfo asyncbuffsArg;
+    asyncbuffsArg.key = "asyncBuffs";
+    asyncbuffsArg.value = "0";
+    asyncbuffsArg.name = "Async buffers";
+    asyncbuffsArg.description = "Number of async usb buffers (advanced).";
+    asyncbuffsArg.units = "buffers";
+    asyncbuffsArg.type = SoapySDR::ArgInfo::INT;
+
+    streamArgs.push_back(asyncbuffsArg);
 
     return streamArgs;
 }
@@ -95,7 +106,7 @@ static void _rx_callback(unsigned char *buf, uint32_t len, void *ctx)
 void SoapyRTLSDR::rx_async_operation(void)
 {
     //printf("rx_async_operation\n");
-    rtlsdr_read_async(dev, &_rx_callback, this, numBuffers, bufferLength);
+    rtlsdr_read_async(dev, &_rx_callback, this, asyncBuffs, bufferLength);
     //printf("rx_async_operation done!\n");
 }
 
@@ -208,7 +219,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
         }
     }
 
-
+    bufferLength = DEFAULT_BUFFER_LENGTH;
     if (args.count("buflen") != 0)
     {
         try
@@ -223,6 +234,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
     }
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using buffer length %d", bufferLength);
 
+    numBuffers = DEFAULT_NUM_BUFFERS;
     if (args.count("buffers") != 0)
     {
         try
@@ -236,6 +248,20 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
         catch (const std::invalid_argument &){}
     }
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Using %d buffers", numBuffers);
+
+    asyncBuffs = 0;
+    if (args.count("asyncBuffs") != 0)
+    {
+        try
+        {
+            int asyncBuffs_in = std::stoi(args.at("asyncBuffs"));
+            if (asyncBuffs_in > 0)
+            {
+                asyncBuffs = asyncBuffs;
+            }
+        }
+        catch (const std::invalid_argument &){}
+    }
 
     if (tunerType == RTLSDR_TUNER_E4000) {
         IFGain[0] = 6;
