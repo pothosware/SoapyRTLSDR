@@ -198,6 +198,22 @@ bool SoapyRTLSDR::hasDCOffsetMode(const int direction, const size_t channel) con
     return false;
 }
 
+bool SoapyRTLSDR::hasFrequencyCorrection(const int direction, const size_t channel) const
+{
+    return true;
+}
+
+void SoapyRTLSDR::setFrequencyCorrection(const int direction, const size_t channel, const double value)
+{
+    ppm = int(value);
+    rtlsdr_set_freq_correction(dev, ppm);
+}
+
+double SoapyRTLSDR::getFrequencyCorrection(const int direction, const size_t channel) const
+{
+    return double(ppm);
+}
+
 /*******************************************************************
  * Gain API
  ******************************************************************/

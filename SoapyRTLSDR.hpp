@@ -135,6 +135,12 @@ public:
 
     bool hasDCOffsetMode(const int direction, const size_t channel) const;
 
+    bool hasFrequencyCorrection(const int direction, const size_t channel) const;
+
+    void setFrequencyCorrection(const int direction, const size_t channel, const double value);
+
+    double getFrequencyCorrection(const int direction, const size_t channel) const;
+
     /*******************************************************************
      * Gain API
      ******************************************************************/
