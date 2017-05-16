@@ -132,8 +132,9 @@ void SoapyRTLSDR::rx_callback(unsigned char *buf, uint32_t len)
     //increment buffers available under lock
     //to avoid race in acquireReadBuffer wait
     {
-        std::lock_guard<std::mutex> lock(_buf_mutex);
-        _buf_count++;
+    std::lock_guard<std::mutex> lock(_buf_mutex);
+    _buf_count++;
+
     }
 
     //notify readStream()
@@ -220,11 +221,11 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
     }
 
     bufferLength = DEFAULT_BUFFER_LENGTH;
-    if (args.count("buflen") != 0)
+    if (args.count("bufflen") != 0)
     {
         try
         {
-            int bufferLength_in = std::stoi(args.at("buflen"));
+            int bufferLength_in = std::stoi(args.at("bufflen"));
             if (bufferLength_in > 0)
             {
                 bufferLength = bufferLength_in;
@@ -262,7 +263,6 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
         }
         catch (const std::invalid_argument &){}
     }
-
     if (tunerType == RTLSDR_TUNER_E4000) {
         IFGain[0] = 6;
         IFGain[1] = 9;
