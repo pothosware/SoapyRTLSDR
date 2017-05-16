@@ -339,6 +339,13 @@ int SoapyRTLSDR::readStream(
         long long &timeNs,
         const long timeoutUs)
 {
+    //drop remainder buffer on reset
+    if (resetBuffer and bufferedElems != 0)
+    {
+        bufferedElems = 0;
+        this->releaseReadBuffer(stream, _currentHandle);
+    }
+
     //this is the user's buffer for channel 0
     void *buff0 = buffs[0];
 

@@ -252,7 +252,7 @@ public:
     std::atomic<bool> _overflowEvent;
     size_t _currentHandle;
     size_t bufferedElems;
-    bool resetBuffer;
+    std::atomic<bool> resetBuffer;
 
     static int rtl_count;
     static std::vector<SoapySDR::Kwargs> rtl_devices;

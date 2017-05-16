@@ -1,6 +1,7 @@
 Release 0.2.4 (pending)
 ==========================
 
+- readStream - also drop remainder buffer on reset
 - Fixed configuration input for num async buffers
 
 Release 0.2.3 (2017-04-29)
