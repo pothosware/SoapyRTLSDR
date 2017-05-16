@@ -257,7 +257,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
             int asyncBuffs_in = std::stoi(args.at("asyncBuffs"));
             if (asyncBuffs_in > 0)
             {
-                asyncBuffs = asyncBuffs;
+                asyncBuffs = asyncBuffs_in;
             }
         }
         catch (const std::invalid_argument &){}
