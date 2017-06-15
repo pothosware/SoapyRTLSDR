@@ -1,4 +1,4 @@
-Release 0.2.4 (pending)
+Release 0.2.4 (2017-06-15)
 ==========================
 
 - readStream - also drop remainder buffer on reset
