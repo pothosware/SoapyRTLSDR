@@ -413,16 +413,16 @@ int SoapyRTLSDR::readStream(
         {
             for (size_t i = 0; i < returnedElems; i++)
             {
-                itarget[i * 2] = _currentBuff[i * 2 + 1]-127;
-                itarget[i * 2 + 1] = _currentBuff[i * 2]-127;
+                itarget[i * 2] = _currentBuff[i * 2 + 1]-128;
+                itarget[i * 2 + 1] = _currentBuff[i * 2]-128;
             }
         }
         else
         {
             for (size_t i = 0; i < returnedElems; i++)
             {
-                itarget[i * 2] = _currentBuff[i * 2]-127;
-                itarget[i * 2 + 1] = _currentBuff[i * 2 + 1]-127;
+                itarget[i * 2] = _currentBuff[i * 2]-128;
+                itarget[i * 2 + 1] = _currentBuff[i * 2 + 1]-128;
             }
         }
     }
