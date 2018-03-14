@@ -292,6 +292,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
 
 void SoapyRTLSDR::closeStream(SoapySDR::Stream *stream)
 {
+    this->deactivateStream(stream, 0, 0);
     _buffs.clear();
 }
 
