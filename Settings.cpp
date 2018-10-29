@@ -54,6 +54,7 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
     iqSwap = false;
     agcMode = false;
     offsetMode = false;
+    gainMode = false;
 
     bufferedElems = 0;
     resetBuffer = false;
@@ -252,7 +253,7 @@ void SoapyRTLSDR::setGainMode(const int direction, const size_t channel, const b
 
 bool SoapyRTLSDR::getGainMode(const int direction, const size_t channel) const
 {
-    return SoapySDR::Device::getGainMode(direction, channel);
+    return agcMode;
 }
 
 void SoapyRTLSDR::setGain(const int direction, const size_t channel, const double value)
@@ -522,6 +523,18 @@ SoapySDR::ArgInfoList SoapyRTLSDR::getSettingInfo(void) const
 
     setArgs.push_back(iqSwapArg);
 
+    // TUNER Automatic Gain Mode to control wether setGain() sets a manual gain
+    // actually the digital AGC should be here and setGainMode() should control automatic/manual gain.
+    SoapySDR::ArgInfo gainModeArg;
+
+    gainModeArg.key = "gain_mode";
+    gainModeArg.value = "false";
+    gainModeArg.name = "automatic gain";
+    gainModeArg.description = "RTL-SDR TUNER Automatic Gain Mode";
+    gainModeArg.type = SoapySDR::ArgInfo::BOOL;
+
+    setArgs.push_back(gainModeArg);
+
     SoapySDR_logf(SOAPY_SDR_DEBUG, "SETARGS?");
 
     return setArgs;
@@ -553,6 +566,12 @@ void SoapyRTLSDR::writeSetting(const std::string &key, const std::string &value)
         SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR offset_tune mode: %s", offsetMode ? "true" : "false");
         rtlsdr_set_offset_tuning(dev, offsetMode ? 1 : 0);
     }
+    else if (key == "gain_mode")
+    {
+        gainMode = (value == "true") ? true : false;
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR TUNER automatic gain mode: %s", gainMode ? "true" : "false");
+        rtlsdr_set_tuner_gain_mode(dev, gainMode ? 1 : 0);
+    }
 }
 
 std::string SoapyRTLSDR::readSetting(const std::string &key) const
@@ -563,6 +582,8 @@ std::string SoapyRTLSDR::readSetting(const std::string &key) const
         return iqSwap?"true":"false";
     } else if (key == "offset_tune") {
         return offsetMode?"true":"false";
+    } else if (key == "gain_mode") {
+        return gainMode?"true":"false";
     }
 
     SoapySDR_logf(SOAPY_SDR_WARNING, "Unknown setting '%s'", key.c_str());
