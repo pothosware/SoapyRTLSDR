@@ -141,7 +141,25 @@ std::string SoapyRTLSDR::getDriverKey(void) const
 
 std::string SoapyRTLSDR::getHardwareKey(void) const
 {
-    return "RTLSDR";
+    switch (rtlsdr_get_tuner_type(dev))
+    {
+    case RTLSDR_TUNER_UNKNOWN:
+        return "UNKNOWN";
+    case RTLSDR_TUNER_E4000:
+        return "E4000";
+    case RTLSDR_TUNER_FC0012:
+        return "FC0012";
+    case RTLSDR_TUNER_FC0013:
+        return "FC0013";
+    case RTLSDR_TUNER_FC2580:
+        return "FC2580";
+    case RTLSDR_TUNER_R820T:
+        return "R820T";
+    case RTLSDR_TUNER_R828D:
+        return "R828D";
+    default:
+        return "OTHER";
+    }
 }
 
 SoapySDR::Kwargs SoapyRTLSDR::getHardwareInfo(void) const
