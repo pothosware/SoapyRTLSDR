@@ -1,3 +1,10 @@
+Release 0.3.0 (pending)
+==========================
+
+- digital AGC now available through "digital_agc" setting
+- gain mode now affects rtlsdr_set_tuner_gain_mode()
+- getHardwareKey() returns the actual tuner type
+
 Release 0.2.5 (2018-05-05)
 ==========================
 
