@@ -227,7 +227,7 @@ private:
     uint32_t sampleRate, centerFrequency;
     int ppm, directSamplingMode;
     size_t numBuffers, bufferLength, asyncBuffs;
-    bool iqSwap, agcMode, offsetMode;
+    bool iqSwap, gainMode, offsetMode, digitalAGC;
     double IFGain[6], tunerGain;
 
     std::vector<std::complex<float> > _lut_32f;

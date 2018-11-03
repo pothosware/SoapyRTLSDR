@@ -52,8 +52,9 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
     bufferLength = DEFAULT_BUFFER_LENGTH;
 
     iqSwap = false;
-    agcMode = false;
+    gainMode = false;
     offsetMode = false;
+    digitalAGC = false;
 
     bufferedElems = 0;
     resetBuffer = false;
@@ -263,14 +264,14 @@ bool SoapyRTLSDR::hasGainMode(const int direction, const size_t channel) const
 
 void SoapyRTLSDR::setGainMode(const int direction, const size_t channel, const bool automatic)
 {
-    agcMode = automatic;
-    SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR AGC: %s", automatic ? "Automatic" : "Manual");
-    rtlsdr_set_agc_mode(dev, agcMode ? 1 : 0);
+    gainMode = automatic;
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting RTL-SDR gain mode: %s", automatic ? "Automatic" : "Manual");
+    rtlsdr_set_tuner_gain_mode(dev, gainMode ? 0 : 1);
 }
 
 bool SoapyRTLSDR::getGainMode(const int direction, const size_t channel) const
 {
-    return SoapySDR::Device::getGainMode(direction, channel);
+    return gainMode;
 }
 
 void SoapyRTLSDR::setGain(const int direction, const size_t channel, const double value)
@@ -540,6 +541,16 @@ SoapySDR::ArgInfoList SoapyRTLSDR::getSettingInfo(void) const
 
     setArgs.push_back(iqSwapArg);
 
+    SoapySDR::ArgInfo digitalAGCArg;
+
+    digitalAGCArg.key = "digital_agc";
+    digitalAGCArg.value = "false";
+    digitalAGCArg.name = "Digital AGC";
+    digitalAGCArg.description = "RTL-SDR digital AGC Mode";
+    digitalAGCArg.type = SoapySDR::ArgInfo::BOOL;
+
+    setArgs.push_back(digitalAGCArg);
+
     SoapySDR_logf(SOAPY_SDR_DEBUG, "SETARGS?");
 
     return setArgs;
@@ -571,6 +582,12 @@ void SoapyRTLSDR::writeSetting(const std::string &key, const std::string &value)
         SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR offset_tune mode: %s", offsetMode ? "true" : "false");
         rtlsdr_set_offset_tuning(dev, offsetMode ? 1 : 0);
     }
+    else if (key == "digital_agc")
+    {
+        digitalAGC = (value == "true") ? true : false;
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR digital agc mode: %s", digitalAGC ? "true" : "false");
+        rtlsdr_set_agc_mode(dev, digitalAGC ? 1 : 0);
+    }
 }
 
 std::string SoapyRTLSDR::readSetting(const std::string &key) const
@@ -581,6 +598,8 @@ std::string SoapyRTLSDR::readSetting(const std::string &key) const
         return iqSwap?"true":"false";
     } else if (key == "offset_tune") {
         return offsetMode?"true":"false";
+    } else if (key == "digital_agc") {
+        return digitalAGC?"true":"false";
     }
 
     SoapySDR_logf(SOAPY_SDR_WARNING, "Unknown setting '%s'", key.c_str());
