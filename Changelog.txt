@@ -1,4 +1,4 @@
-Release 0.3.0 (pending)
+Release 0.3.0 (2018-12-07)
 ==========================
 
 - digital AGC now available through "digital_agc" setting

@@ -1,3 +1,9 @@
+soapyrtlsdr (0.3.0-1) unstable; urgency=low
+
+  * Release 0.3.0 (2018-12-07)
+
+ -- Josh Blum <josh@pothosware.com>  Fri, 07 Dec 2018 21:17:42 -0000
+
 soapyrtlsdr (0.2.5-1) unstable; urgency=low
 
   * Release 0.2.5 (2018-05-05)
