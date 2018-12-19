@@ -51,7 +51,7 @@ SOAPY_SDR_MODULE_UTIL(
     TARGET rtlsdrSupport
     SOURCES
         SoapyRTLSDR.hpp
-        Registation.cpp
+        Registration.cpp
         Settings.cpp
         Streaming.cpp
     LIBRARIES
