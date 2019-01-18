@@ -26,6 +26,7 @@
 #include "SoapyRTLSDR.hpp"
 #include <SoapySDR/Logger.hpp>
 #include <SoapySDR/Formats.hpp>
+#include <SoapySDR/Time.hpp>
 #include <algorithm> //min
 #include <climits> //SHRT_MAX
 #include <cstring> // memcpy
@@ -114,6 +115,9 @@ void SoapyRTLSDR::rx_callback(unsigned char *buf, uint32_t len)
 {
     //printf("_rx_callback %d _buf_head=%d, numBuffers=%d\n", len, _buf_head, _buf_tail);
 
+    // atomically add len to ticks but return the previous value
+    unsigned long long tick = ticks.fetch_add(len);
+
     //overflow condition: the caller is not reading fast enough
     if (_buf_count == numBuffers)
     {
@@ -123,8 +127,9 @@ void SoapyRTLSDR::rx_callback(unsigned char *buf, uint32_t len)
 
     //copy into the buffer queue
     auto &buff = _buffs[_buf_tail];
-    buff.resize(len);
-    std::memcpy(buff.data(), buf, len);
+    buff.tick = tick;
+    buff.data.resize(len);
+    std::memcpy(buff.data.data(), buf, len);
 
     //increment the tail pointer
     _buf_tail = (_buf_tail + 1) % numBuffers;
@@ -284,8 +289,8 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
 
     //allocate buffers
     _buffs.resize(numBuffers);
-    for (auto &buff : _buffs) buff.reserve(bufferLength);
-    for (auto &buff : _buffs) buff.resize(bufferLength);
+    for (auto &buff : _buffs) buff.data.reserve(bufferLength);
+    for (auto &buff : _buffs) buff.data.resize(bufferLength);
 
     return (SoapySDR::Stream *) this;
 }
@@ -353,9 +358,11 @@ int SoapyRTLSDR::readStream(
     //are elements left in the buffer? if not, do a new read.
     if (bufferedElems == 0)
     {
-        int ret = this->acquireReadBuffer(stream, _currentHandle, (const void **)&_currentBuff, flags, timeNs, timeoutUs);
+        long long bufTimeNs;
+        int ret = this->acquireReadBuffer(stream, _currentHandle, (const void **)&_currentBuff, flags, bufTimeNs, timeoutUs);
         if (ret < 0) return ret;
         bufferedElems = ret;
+        bufTicks = SoapySDR::timeNsToTicks(bufTimeNs, sampleRate);
     }
 
     size_t returnedElems = std::min(bufferedElems, numElems);
@@ -431,6 +438,8 @@ int SoapyRTLSDR::readStream(
     //bump variables for next call into readStream
     bufferedElems -= returnedElems;
     _currentBuff += returnedElems*BYTES_PER_SAMPLE;
+    timeNs = SoapySDR::ticksToTimeNs(bufTicks, sampleRate);
+    bufTicks += returnedElems; //for the next call to readStream if there is a remainder
 
     //return number of elements written to buff0
     if (bufferedElems != 0) flags |= SOAPY_SDR_MORE_FRAGMENTS;
@@ -449,7 +458,7 @@ size_t SoapyRTLSDR::getNumDirectAccessBuffers(SoapySDR::Stream *stream)
 
 int SoapyRTLSDR::getDirectAccessBufferAddrs(SoapySDR::Stream *stream, const size_t handle, void **buffs)
 {
-    buffs[0] = (void *)_buffs[handle].data();
+    buffs[0] = (void *)_buffs[handle].data.data();
     return 0;
 }
 
@@ -492,11 +501,12 @@ int SoapyRTLSDR::acquireReadBuffer(
     //extract handle and buffer
     handle = _buf_head;
     _buf_head = (_buf_head + 1) % numBuffers;
-    buffs[0] = (void *)_buffs[handle].data();
+    timeNs = SoapySDR::ticksToTimeNs(_buffs[handle].tick, sampleRate);
+    buffs[0] = (void *)_buffs[handle].data.data();
     flags = 0;
 
     //return number available
-    return _buffs[handle].size() / BYTES_PER_SAMPLE;
+    return _buffs[handle].data.size() / BYTES_PER_SAMPLE;
 }
 
 void SoapyRTLSDR::releaseReadBuffer(
