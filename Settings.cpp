@@ -377,7 +377,6 @@ void SoapyRTLSDR::setFrequency(
     if (name == "RF")
     {
         centerFrequency = (uint32_t) frequency;
-        resetBuffer = true;
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting center freq: %d", centerFrequency);
         rtlsdr_set_center_freq(dev, centerFrequency);
     }
