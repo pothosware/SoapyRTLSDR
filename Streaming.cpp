@@ -358,12 +358,13 @@ int SoapyRTLSDR::readStream(
     //are elements left in the buffer? if not, do a new read.
     if (bufferedElems == 0)
     {
-        long long bufTimeNs;
-        int ret = this->acquireReadBuffer(stream, _currentHandle, (const void **)&_currentBuff, flags, bufTimeNs, timeoutUs);
+        int ret = this->acquireReadBuffer(stream, _currentHandle, (const void **)&_currentBuff, flags, timeNs, timeoutUs);
         if (ret < 0) return ret;
         bufferedElems = ret;
-        bufTicks = SoapySDR::timeNsToTicks(bufTimeNs, sampleRate);
     }
+
+    //otherwise just update return time to the current tick count
+    else timeNs = SoapySDR::ticksToTimeNs(bufTicks, sampleRate);
 
     size_t returnedElems = std::min(bufferedElems, numElems);
 
@@ -438,7 +439,6 @@ int SoapyRTLSDR::readStream(
     //bump variables for next call into readStream
     bufferedElems -= returnedElems;
     _currentBuff += returnedElems*BYTES_PER_SAMPLE;
-    timeNs = SoapySDR::ticksToTimeNs(bufTicks, sampleRate);
     bufTicks += returnedElems; //for the next call to readStream if there is a remainder
 
     //return number of elements written to buff0
@@ -501,6 +501,7 @@ int SoapyRTLSDR::acquireReadBuffer(
     //extract handle and buffer
     handle = _buf_head;
     _buf_head = (_buf_head + 1) % numBuffers;
+    bufTicks = _buffs[handle].tick;
     timeNs = SoapySDR::ticksToTimeNs(_buffs[handle].tick, sampleRate);
     buffs[0] = (void *)_buffs[handle].data.data();
     flags = 0;

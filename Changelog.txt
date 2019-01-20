@@ -1,3 +1,8 @@
+Release 0.3.1 (pending)
+==========================
+
+- Implement hardware time API using absolute sample count
+
 Release 0.3.0 (2018-12-07)
 ==========================
 
