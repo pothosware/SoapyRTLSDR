@@ -197,6 +197,20 @@ public:
     std::vector<double> listBandwidths(const int direction, const size_t channel) const;
 
     /*******************************************************************
+     * Time API
+     ******************************************************************/
+
+    std::vector<std::string> listTimeSources(void) const;
+
+    std::string getTimeSource(void) const;
+
+    bool hasHardwareTime(const std::string &what = "") const;
+
+    long long getHardwareTime(const std::string &what = "") const;
+
+    void setHardwareTime(const long long timeNs, const std::string &what = "");
+
+    /*******************************************************************
      * Utility
      ******************************************************************/
 
@@ -229,13 +243,21 @@ private:
     size_t numBuffers, bufferLength, asyncBuffs;
     bool iqSwap, gainMode, offsetMode, digitalAGC;
     double IFGain[6], tunerGain;
+    std::atomic<long long> ticks;
 
     std::vector<std::complex<float> > _lut_32f;
     std::vector<std::complex<float> > _lut_swap_32f;
     std::vector<std::complex<int16_t> > _lut_16i;
     std::vector<std::complex<int16_t> > _lut_swap_16i;
 
+
 public:
+    struct Buffer
+    {
+        unsigned long long tick;
+        std::vector<signed char> data;
+    };
+
     //async api usage
     std::thread _rx_async_thread;
     void rx_async_operation(void);
@@ -244,7 +266,7 @@ public:
     std::mutex _buf_mutex;
     std::condition_variable _buf_cond;
 
-    std::vector<std::vector<signed char> > _buffs;
+    std::vector<Buffer> _buffs;
     size_t	_buf_head;
     size_t	_buf_tail;
     std::atomic<size_t>	_buf_count;
@@ -252,6 +274,7 @@ public:
     std::atomic<bool> _overflowEvent;
     size_t _currentHandle;
     size_t bufferedElems;
+    long long bufTicks;
     std::atomic<bool> resetBuffer;
 
     static int rtl_count;

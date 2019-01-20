@@ -24,6 +24,7 @@
  */
 
 #include "SoapyRTLSDR.hpp"
+#include <SoapySDR/Time.hpp>
 
 int SoapyRTLSDR::rtl_count;
 std::vector<SoapySDR::Kwargs> SoapyRTLSDR::rtl_devices;
@@ -55,6 +56,8 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
     gainMode = false;
     offsetMode = false;
     digitalAGC = false;
+
+    ticks = 0;
 
     bufferedElems = 0;
     resetBuffer = false;
@@ -452,10 +455,12 @@ SoapySDR::ArgInfoList SoapyRTLSDR::getFrequencyArgsInfo(const int direction, con
 
 void SoapyRTLSDR::setSampleRate(const int direction, const size_t channel, const double rate)
 {
+    long long ns = SoapySDR::ticksToTimeNs(ticks, sampleRate);
     sampleRate = rate;
     resetBuffer = true;
     SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting sample rate: %d", sampleRate);
     rtlsdr_set_sample_rate(dev, sampleRate);
+    ticks = SoapySDR::timeNsToTicks(ns, sampleRate);
 }
 
 double SoapyRTLSDR::getSampleRate(const int direction, const size_t channel) const
@@ -496,6 +501,39 @@ std::vector<double> SoapyRTLSDR::listBandwidths(const int direction, const size_
     std::vector<double> results;
 
     return results;
+}
+
+/*******************************************************************
+ * Time API
+ ******************************************************************/
+
+std::vector<std::string> SoapyRTLSDR::listTimeSources(void) const
+{
+    std::vector<std::string> results;
+
+    results.push_back("sw_ticks");
+
+    return results;
+}
+
+std::string SoapyRTLSDR::getTimeSource(void) const
+{
+    return "sw_ticks";
+}
+
+bool SoapyRTLSDR::hasHardwareTime(const std::string &what) const
+{
+    return what == "" || what == "sw_ticks";
+}
+
+long long SoapyRTLSDR::getHardwareTime(const std::string &what) const
+{
+    return SoapySDR::ticksToTimeNs(ticks, sampleRate);
+}
+
+void SoapyRTLSDR::setHardwareTime(const long long timeNs, const std::string &what)
+{
+    ticks = SoapySDR::timeNsToTicks(timeNs, sampleRate);
 }
 
 /*******************************************************************
