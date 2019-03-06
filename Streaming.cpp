@@ -364,7 +364,11 @@ int SoapyRTLSDR::readStream(
     }
 
     //otherwise just update return time to the current tick count
-    else timeNs = SoapySDR::ticksToTimeNs(bufTicks, sampleRate);
+    else
+    {
+        flags |= SOAPY_SDR_HAS_TIME;
+        timeNs = SoapySDR::ticksToTimeNs(bufTicks, sampleRate);
+    }
 
     size_t returnedElems = std::min(bufferedElems, numElems);
 
@@ -504,7 +508,7 @@ int SoapyRTLSDR::acquireReadBuffer(
     bufTicks = _buffs[handle].tick;
     timeNs = SoapySDR::ticksToTimeNs(_buffs[handle].tick, sampleRate);
     buffs[0] = (void *)_buffs[handle].data.data();
-    flags = 0;
+    flags = SOAPY_SDR_HAS_TIME;
 
     //return number available
     return _buffs[handle].data.size() / BYTES_PER_SAMPLE;
