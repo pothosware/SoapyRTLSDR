@@ -66,6 +66,8 @@ public:
 
     size_t getNumChannels(const int) const;
 
+    bool getFullDuplex(const int direction, const size_t channel) const;
+
     /*******************************************************************
      * Stream API
      ******************************************************************/

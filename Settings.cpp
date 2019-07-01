@@ -187,6 +187,11 @@ size_t SoapyRTLSDR::getNumChannels(const int dir) const
     return (dir == SOAPY_SDR_RX) ? 1 : 0;
 }
 
+bool SoapyRTLSDR::getFullDuplex(const int direction, const size_t channel) const
+{
+	return false;
+}
+
 /*******************************************************************
  * Antenna API
  ******************************************************************/
