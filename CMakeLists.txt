@@ -21,6 +21,16 @@ message(STATUS "RTLSDR_LIBRARIES - ${RTLSDR_LIBRARIES}")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${RTLSDR_INCLUDE_DIRS})
 
+##
+## Test for Atomics
+##
+include(CheckAtomic)
+if(NOT HAVE_CXX_ATOMICS_WITHOUT_LIB)
+    if(NOT HAVE_CXX_ATOMICS64_WITHOUT_LIB)
+        set(ATOMIC_LIBS "atomic")
+    endif()
+endif()
+
 #enable c++11 features
 if(CMAKE_COMPILER_IS_GNUCXX)
 
@@ -56,5 +66,6 @@ SOAPY_SDR_MODULE_UTIL(
         Streaming.cpp
     LIBRARIES
         ${RTLSDR_LIBRARIES}
+        ${ATOMIC_LIBS}
         ${OTHER_LIBS}
 )
