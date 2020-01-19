@@ -279,7 +279,5 @@ public:
     long long bufTicks;
     std::atomic<bool> resetBuffer;
 
-    static int rtl_count;
-    static std::vector<SoapySDR::Kwargs> rtl_devices;
-    static double gainMin, gainMax;
+    double gainMin, gainMax;
 };

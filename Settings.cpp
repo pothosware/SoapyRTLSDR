@@ -25,107 +25,51 @@
 
 #include "SoapyRTLSDR.hpp"
 #include <SoapySDR/Time.hpp>
+#include <algorithm>
 
-int SoapyRTLSDR::rtl_count;
-std::vector<SoapySDR::Kwargs> SoapyRTLSDR::rtl_devices;
-double SoapyRTLSDR::gainMin;
-double SoapyRTLSDR::gainMax;
-
-SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args)
+SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
+    deviceId(-1),
+    dev(nullptr),
+    rxFormat(RTL_RX_FORMAT_FLOAT32),
+    tunerType(RTLSDR_TUNER_R820T),
+    sampleRate(2048000),
+    centerFrequency(100000000),
+    ppm(0),
+    directSamplingMode(0),
+    numBuffers(DEFAULT_NUM_BUFFERS),
+    bufferLength(DEFAULT_BUFFER_LENGTH),
+    iqSwap(false),
+    gainMode(false),
+    offsetMode(false),
+    digitalAGC(false),
+    ticks(false),
+    bufferedElems(0),
+    resetBuffer(false)
 {
-    if (!SoapyRTLSDR::rtl_count)
-    {
-        throw std::runtime_error("RTL-SDR device not found.");
-    }
+    if (args.count("label") != 0) SoapySDR_logf(SOAPY_SDR_INFO, "Opening %s...", args.at("label").c_str());
 
-    deviceId = -1;
-    dev = NULL;
+    //if a serial is not present, then findRTLSDR had zero devices enumerated
+    if (args.count("serial") == 0) throw std::runtime_error("No RTL-SDR devices found!");
 
-    rxFormat = RTL_RX_FORMAT_FLOAT32;
-    tunerType = RTLSDR_TUNER_R820T;
+    const auto serial = args.at("serial");
+    deviceId = rtlsdr_get_index_by_serial(serial.c_str());
+    if (deviceId < 0) throw std::runtime_error("rtlsdr_get_index_by_serial("+serial+") - " + std::to_string(deviceId));
 
-    sampleRate = 2048000;
-    centerFrequency = 100000000;
-
-    ppm = 0;
-    directSamplingMode = 0;
-    numBuffers = DEFAULT_NUM_BUFFERS;
-    bufferLength = DEFAULT_BUFFER_LENGTH;
-
-    iqSwap = false;
-    gainMode = false;
-    offsetMode = false;
-    digitalAGC = false;
-
-    ticks = 0;
-
-    bufferedElems = 0;
-    resetBuffer = false;
-
-    if (args.count("rtl") != 0)
-    {
-        try
-        {
-            deviceId = std::stoi(args.at("rtl"));
-        }
-        catch (const std::invalid_argument &)
-        {
-        }
-        if (deviceId < 0 || deviceId >= SoapyRTLSDR::rtl_count)
-        {
-            throw std::runtime_error(
-                    "device index 'rtl' out of range [0 .. " + std::to_string(SoapyRTLSDR::rtl_count) + "].");
-        }
-
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Found RTL-SDR Device using device index parameter 'rtl' = %d", deviceId);
-    }
-    else if (args.count("serial") != 0)
-    {
-        std::string deviceSerialFind = args.at("serial");
-
-        for (int i = 0; i < SoapyRTLSDR::rtl_count; i++)
-        {
-            SoapySDR::Kwargs devInfo = SoapyRTLSDR::rtl_devices[i];
-            if (devInfo.at("serial") == deviceSerialFind)
-            {
-                SoapySDR_logf(SOAPY_SDR_DEBUG,
-                        "Found RTL-SDR Device #%d by serial %s -- Manufacturer: %s, Product Name: %s, Serial: %s", i,
-                        deviceSerialFind.c_str(), devInfo.at("manufacturer").c_str(), devInfo.at("product").c_str(),
-                        devInfo.at("serial").c_str());
-                deviceId = i;
-                break;
-            }
-        }
-    }
-    else if (args.count("label") != 0)
-    {
-        std::string labelFind = args.at("label");
-        for (int i = 0; i < SoapyRTLSDR::rtl_count; i++)
-        {
-            SoapySDR::Kwargs devInfo = SoapyRTLSDR::rtl_devices[i];
-            if (devInfo.at("label") == labelFind)
-            {
-                SoapySDR_logf(SOAPY_SDR_DEBUG, "Found RTL-SDR Device #%d by name: %s", devInfo.at("label").c_str());
-                deviceId = i;
-                break;
-            }
-        }
-    }
-
-    if (deviceId == -1)
-    {
-        throw std::runtime_error("Unable to find requested RTL-SDR device.");
-    }
-
-    if (args.count("tuner") != 0)
-    {
-        tunerType = rtlStringToTuner(args.at("tuner"));
-    }
+    if (args.count("tuner") != 0) tunerType = rtlStringToTuner(args.at("tuner"));
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Tuner type: %s", rtlTunerToString(tunerType).c_str());
 
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR opening device %d", deviceId);
-
     rtlsdr_open(&dev, deviceId);
+
+    //extract min/max overall gain range
+    int num_gains = rtlsdr_get_tuner_gains(dev, nullptr);
+    if (num_gains > 0)
+    {
+        std::vector<int> gains(num_gains);
+        rtlsdr_get_tuner_gains(dev, gains.data());
+        gainMin = *std::min_element(gains.begin(), gains.end()) / 10.0;
+        gainMax = *std::max_element(gains.begin(), gains.end()) / 10.0;
+    }
 }
 
 SoapyRTLSDR::~SoapyRTLSDR(void)
@@ -173,7 +117,7 @@ SoapySDR::Kwargs SoapyRTLSDR::getHardwareInfo(void) const
     SoapySDR::Kwargs args;
 
     args["origin"] = "https://github.com/pothosware/SoapyRTLSDR";
-    args["rtl"] = std::to_string(deviceId);
+    args["index"] = std::to_string(deviceId);
 
     return args;
 }
@@ -189,7 +133,7 @@ size_t SoapyRTLSDR::getNumChannels(const int dir) const
 
 bool SoapyRTLSDR::getFullDuplex(const int direction, const size_t channel) const
 {
-	return false;
+    return false;
 }
 
 /*******************************************************************
@@ -365,9 +309,9 @@ SoapySDR::Range SoapyRTLSDR::getGainRange(const int direction, const size_t chan
             return SoapySDR::Range(3, 15);
         }
 
-        return SoapySDR::Range(SoapyRTLSDR::gainMin, SoapyRTLSDR::gainMax);
+        return SoapySDR::Range(gainMin, gainMax);
     } else {
-        return SoapySDR::Range(SoapyRTLSDR::gainMin, SoapyRTLSDR::gainMax);
+        return SoapySDR::Range(gainMin, gainMax);
     }
 }
 
