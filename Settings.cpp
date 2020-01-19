@@ -44,7 +44,9 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
     digitalAGC(false),
     ticks(false),
     bufferedElems(0),
-    resetBuffer(false)
+    resetBuffer(false),
+    gainMin(0.0),
+    gainMax(0.0)
 {
     if (args.count("label") != 0) SoapySDR_logf(SOAPY_SDR_INFO, "Opening %s...", args.at("label").c_str());
 
