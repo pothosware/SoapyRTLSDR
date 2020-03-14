@@ -542,7 +542,7 @@ SoapySDR::ArgInfoList SoapyRTLSDR::getSettingInfo(void) const
 
     SoapySDR::ArgInfo biasTeeArg;
 
-    biasTeeArg.key = "bias_tee";
+    biasTeeArg.key = "biastee";
     biasTeeArg.value = "false";
     biasTeeArg.name = "Bias Tee";
     biasTeeArg.description = "RTL-SDR Blog V.3 Bias-Tee Mode";
@@ -587,7 +587,7 @@ void SoapyRTLSDR::writeSetting(const std::string &key, const std::string &value)
         SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR digital agc mode: %s", digitalAGC ? "true" : "false");
         rtlsdr_set_agc_mode(dev, digitalAGC ? 1 : 0);
     }
-    else if (key == "bias_tee")
+    else if (key == "biastee")
     {
         biasTee = (value == "true") ? true: false;
         SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR bias tee mode: %s", biasTee ? "true" : "false");
@@ -605,7 +605,7 @@ std::string SoapyRTLSDR::readSetting(const std::string &key) const
         return offsetMode?"true":"false";
     } else if (key == "digital_agc") {
         return digitalAGC?"true":"false";
-    } else if (key == "bias_tee") {
+    } else if (key == "biastee") {
         return biasTee?"true":"false";
     }
 
