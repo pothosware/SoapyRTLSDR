@@ -21,14 +21,10 @@ message(STATUS "RTLSDR_LIBRARIES - ${RTLSDR_LIBRARIES}")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${RTLSDR_INCLUDE_DIRS})
 
-##
-## Test for Atomics
-##
+# Test for Atomics
 include(CheckAtomic)
-if(NOT HAVE_CXX_ATOMICS_WITHOUT_LIB)
-    if(NOT HAVE_CXX_ATOMICS64_WITHOUT_LIB)
-        set(ATOMIC_LIBS "atomic")
-    endif()
+if(NOT HAVE_CXX_ATOMICS_WITHOUT_LIB OR NOT HAVE_CXX_ATOMICS64_WITHOUT_LIB)
+    set(ATOMIC_LIBS "atomic")
 endif()
 
 #enable c++11 features
