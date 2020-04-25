@@ -51,6 +51,15 @@ if (APPLE)
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wc++11-extensions")
 endif(APPLE)
 
+# check if rtlsdr library includes support for bias-tee
+include(CheckFunctionExists)
+set(CMAKE_REQUIRED_LIBRARIES ${RTLSDR_LIBRARIES})
+check_function_exists(rtlsdr_set_bias_tee HAS_RTLSDR_SET_BIAS_TEE)
+unset(CMAKE_REQUIRED_LIBRARIES)
+if (HAS_RTLSDR_SET_BIAS_TEE)
+    add_definitions(-DHAS_RTLSDR_SET_BIAS_TEE)
+endif()
+
 set(OTHER_LIBS "" CACHE STRING "Other libraries")
 
 SOAPY_SDR_MODULE_UTIL(
