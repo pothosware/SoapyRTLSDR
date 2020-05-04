@@ -64,7 +64,9 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Tuner type: %s", rtlTunerToString(tunerType).c_str());
 
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR opening device %d", deviceId);
-    rtlsdr_open(&dev, deviceId);
+    if (rtlsdr_open(&dev, deviceId) != 0) {
+        throw std::runtime_error("Unable to open RTL-SDR device");
+    }
 
     //extract min/max overall gain range
     int num_gains = rtlsdr_get_tuner_gains(dev, nullptr);
