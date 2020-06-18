@@ -278,6 +278,8 @@ public:
     size_t bufferedElems;
     long long bufTicks;
     std::atomic<bool> resetBuffer;
+    std::atomic<bool> freqChanging;
+    std::atomic<bool> streamDeactivating;
 
     double gainMin, gainMax;
 };
