@@ -106,9 +106,15 @@ static void _rx_callback(unsigned char *buf, uint32_t len, void *ctx)
 
 void SoapyRTLSDR::rx_async_operation(void)
 {
-    //printf("rx_async_operation\n");
-    rtlsdr_read_async(dev, &_rx_callback, this, asyncBuffs, bufferLength);
-    //printf("rx_async_operation done!\n");
+    // printf("rx_async_operation\n");
+    do {
+        if (freqChanging) {
+            rtlsdr_set_center_freq(dev, centerFrequency);
+            freqChanging = false;
+        }
+        rtlsdr_read_async(dev, &_rx_callback, this, asyncBuffs, bufferLength);
+   } while (freqChanging && !streamDeactivating);
+    // printf("rx_async_operation done!\n");
 }
 
 void SoapyRTLSDR::rx_callback(unsigned char *buf, uint32_t len)
@@ -314,6 +320,7 @@ int SoapyRTLSDR::activateStream(
 {
     if (flags != 0) return SOAPY_SDR_NOT_SUPPORTED;
     resetBuffer = true;
+    streamDeactivating = false;
     bufferedElems = 0;
 
     //start the async thread
@@ -331,6 +338,7 @@ int SoapyRTLSDR::deactivateStream(SoapySDR::Stream *stream, const int flags, con
     if (flags != 0) return SOAPY_SDR_NOT_SUPPORTED;
     if (_rx_async_thread.joinable())
     {
+        streamDeactivating = true;
         rtlsdr_cancel_async(dev);
         _rx_async_thread.join();
     }
