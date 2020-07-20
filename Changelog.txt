@@ -1,6 +1,10 @@
 Release 0.3.1 (pending)
 ==========================
 
+- Refactor and fix open by serial implementation
+- Support recent rtlsdr_set_bias_tee() API
+- Do not advertise full duplex capability
+- Possible fix for issue with misaligned center frequency
 - Implement hardware time API using absolute sample count
 
 Release 0.3.0 (2018-12-07)
