@@ -185,8 +185,12 @@ bool SoapyRTLSDR::hasFrequencyCorrection(const int direction, const size_t chann
 
 void SoapyRTLSDR::setFrequencyCorrection(const int direction, const size_t channel, const double value)
 {
-    ppm = int(value);
-    rtlsdr_set_freq_correction(dev, ppm);
+    int r = rtlsdr_set_freq_correction(dev, int(value));
+    if (r != 0)
+    {
+        throw std::runtime_error("setFrequencyCorrection failed");
+    }
+    ppm = rtlsdr_get_freq_correction(dev);
 }
 
 double SoapyRTLSDR::getFrequencyCorrection(const int direction, const size_t channel) const
@@ -337,21 +341,30 @@ void SoapyRTLSDR::setFrequency(
 {
     if (name == "RF")
     {
-        centerFrequency = (uint32_t) frequency;
-        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting center freq: %d", centerFrequency);
-        // Signal to async thread that we're just changing frequencies and not to exit yet
-        freqChanging = true;
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting center freq: %d", (uint32_t)frequency);
         if (streamDeactivating) {
-            rtlsdr_set_center_freq(dev, centerFrequency);
+            int r = rtlsdr_set_center_freq(dev, (uint32_t)frequency);
+            if (r != 0)
+            {
+                throw std::runtime_error("setFrequency failed");
+            }
+            centerFrequency = rtlsdr_get_center_freq(dev);
         } else {
+            centerFrequency = (uint32_t)frequency;
+            // Signal to async thread that we're just changing frequencies and not to exit yet
+            freqChanging = true;
             rtlsdr_cancel_async(dev);
         }
     }
 
     if (name == "CORR")
     {
-        ppm = (int) frequency;
-        rtlsdr_set_freq_correction(dev, ppm);
+        int r = rtlsdr_set_freq_correction(dev, (int)frequency);
+        if (r != 0)
+        {
+            throw std::runtime_error("setFrequency failed");
+        }
+        ppm = rtlsdr_get_freq_correction(dev);
     }
 }
 
@@ -422,7 +435,16 @@ void SoapyRTLSDR::setSampleRate(const int direction, const size_t channel, const
     sampleRate = rate;
     resetBuffer = true;
     SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting sample rate: %d", sampleRate);
-    rtlsdr_set_sample_rate(dev, sampleRate);
+    int r = rtlsdr_set_sample_rate(dev, sampleRate);
+    if (r == -EINVAL)
+    {
+        throw std::runtime_error("setSampleRate failed: RTL-SDR does not support this sample rate");
+    }
+    if (r != 0)
+    {
+        throw std::runtime_error("setSampleRate failed");
+    }
+    sampleRate = rtlsdr_get_sample_rate(dev);
     ticks = SoapySDR::timeNsToTicks(ns, sampleRate);
 }
 
