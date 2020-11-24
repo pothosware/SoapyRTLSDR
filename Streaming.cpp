@@ -286,7 +286,7 @@ SoapySDR::Stream *SoapyRTLSDR::setupStream(
             IFGain[i] = 0;
         }
     }
-    tunerGain = rtlsdr_get_tuner_gain(dev);
+    tunerGain = rtlsdr_get_tuner_gain(dev) / 10.0;
 
     //clear async fifo counts
     _buf_tail = 0;

@@ -27,9 +27,9 @@
 #include <mutex>
 #include <map>
 
-//lookup the tuner by opening the device, its used in the discovery arguments
+//lookup the tuner by opening the device, it's used in the discovery arguments
 //the tuner is cached because the device cannot be opened twice in the same process,
-//and we require that findRTLSDR() yeild the same results for SoapySDR device cache.
+//and we require that findRTLSDR() yield the same results for SoapySDR device cache.
 //if another process attempts to find an open rtlsdr, it will be marked unavailable
 static std::string get_tuner(const std::string &serial, const size_t deviceIndex)
 {
