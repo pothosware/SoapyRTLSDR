@@ -186,6 +186,10 @@ bool SoapyRTLSDR::hasFrequencyCorrection(const int direction, const size_t chann
 void SoapyRTLSDR::setFrequencyCorrection(const int direction, const size_t channel, const double value)
 {
     int r = rtlsdr_set_freq_correction(dev, int(value));
+    if (r == -2)
+    {
+        return; // CORR didn't actually change, we are done
+    }
     if (r != 0)
     {
         throw std::runtime_error("setFrequencyCorrection failed");
@@ -360,9 +364,13 @@ void SoapyRTLSDR::setFrequency(
     if (name == "CORR")
     {
         int r = rtlsdr_set_freq_correction(dev, (int)frequency);
+        if (r == -2)
+        {
+            return; // CORR didn't actually change, we are done
+        }
         if (r != 0)
         {
-            throw std::runtime_error("setFrequency failed");
+            throw std::runtime_error("setFrequencyCorrection failed");
         }
         ppm = rtlsdr_get_freq_correction(dev);
     }
