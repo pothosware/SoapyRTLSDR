@@ -48,8 +48,6 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
     ticks(false),
     bufferedElems(0),
     resetBuffer(false),
-    freqChanging(false),
-    streamDeactivating(true),
     gainMin(0.0),
     gainMax(0.0)
 {
@@ -346,19 +344,12 @@ void SoapyRTLSDR::setFrequency(
     if (name == "RF")
     {
         SoapySDR_logf(SOAPY_SDR_DEBUG, "Setting center freq: %d", (uint32_t)frequency);
-        if (streamDeactivating) {
-            int r = rtlsdr_set_center_freq(dev, (uint32_t)frequency);
-            if (r != 0)
-            {
-                throw std::runtime_error("setFrequency failed");
-            }
-            centerFrequency = rtlsdr_get_center_freq(dev);
-        } else {
-            centerFrequency = (uint32_t)frequency;
-            // Signal to async thread that we're just changing frequencies and not to exit yet
-            freqChanging = true;
-            rtlsdr_cancel_async(dev);
+        int r = rtlsdr_set_center_freq(dev, (uint32_t)frequency);
+        if (r != 0)
+        {
+            throw std::runtime_error("setFrequency failed");
         }
+        centerFrequency = rtlsdr_get_center_freq(dev);
     }
 
     if (name == "CORR")
