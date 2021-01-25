@@ -34,6 +34,7 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
     tunerType(RTLSDR_TUNER_R820T),
     sampleRate(2048000),
     centerFrequency(100000000),
+    bandwidth(0),
     ppm(0),
     directSamplingMode(0),
     numBuffers(DEFAULT_NUM_BUFFERS),
@@ -472,17 +473,34 @@ std::vector<double> SoapyRTLSDR::listSampleRates(const int direction, const size
 
 void SoapyRTLSDR::setBandwidth(const int direction, const size_t channel, const double bw)
 {
-    SoapySDR::Device::setBandwidth(direction, channel, bw);
+    int r = rtlsdr_set_tuner_bandwidth(dev, bw);
+    if (r != 0)
+    {
+        throw std::runtime_error("setBandwidth failed");
+    }
+    bandwidth = bw;
 }
 
 double SoapyRTLSDR::getBandwidth(const int direction, const size_t channel) const
 {
-    return SoapySDR::Device::getBandwidth(direction, channel);
+    if (bandwidth == 0) // auto / full bandwidth
+        return sampleRate;
+    return bandwidth;
 }
 
 std::vector<double> SoapyRTLSDR::listBandwidths(const int direction, const size_t channel) const
 {
     std::vector<double> results;
+
+    return results;
+}
+
+SoapySDR::RangeList SoapyRTLSDR::getBandwidthRange(const int direction, const size_t channel) const
+{
+    SoapySDR::RangeList results;
+
+    // stub, not sure what the sensible ranges for different tuners are.
+    results.push_back(SoapySDR::Range(0, 8000000));
 
     return results;
 }

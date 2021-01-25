@@ -198,6 +198,8 @@ public:
 
     std::vector<double> listBandwidths(const int direction, const size_t channel) const;
 
+    SoapySDR::RangeList getBandwidthRange(const int direction, const size_t channel) const;
+
     /*******************************************************************
      * Time API
      ******************************************************************/
@@ -240,7 +242,7 @@ private:
     //cached settings
     rtlsdrRXFormat rxFormat;
     rtlsdr_tuner tunerType;
-    uint32_t sampleRate, centerFrequency;
+    uint32_t sampleRate, centerFrequency, bandwidth;
     int ppm, directSamplingMode;
     size_t numBuffers, bufferLength, asyncBuffs;
     bool iqSwap, gainMode, offsetMode, digitalAGC, biasTee;
