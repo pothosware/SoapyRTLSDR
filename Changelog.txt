@@ -1,3 +1,12 @@
+Release 0.3.2 (pending)
+==========================
+
+- Revert pull request #49, freq can be set while stream active
+- Fix setFrequencyCorrection exceptional return code
+- Fix to read back after setting sampleRate, ppm,
+  and centerFrequency; or throw on invalid input
+- Fix rtlsdr_get_tuner_gain() in setupStream() (closes #51)
+
 Release 0.3.1 (2020-07-20)
 ==========================
 
