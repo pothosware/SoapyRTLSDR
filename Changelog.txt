@@ -1,4 +1,4 @@
-Release 0.3.2 (pending)
+Release 0.3.2 (2021-01-25)
 ==========================
 
 - Revert pull request #49, freq can be set while stream active
