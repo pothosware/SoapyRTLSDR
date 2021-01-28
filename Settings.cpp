@@ -471,6 +471,16 @@ std::vector<double> SoapyRTLSDR::listSampleRates(const int direction, const size
     return results;
 }
 
+SoapySDR::RangeList SoapyRTLSDR::getSampleRateRange(const int direction, const size_t channel) const
+{
+    SoapySDR::RangeList results;
+
+    results.push_back(SoapySDR::Range(225001, 300000));
+    results.push_back(SoapySDR::Range(900001, 3200000));
+
+    return results;
+}
+
 void SoapyRTLSDR::setBandwidth(const int direction, const size_t channel, const double bw)
 {
     int r = rtlsdr_set_tuner_bandwidth(dev, bw);
