@@ -1,3 +1,9 @@
+Release 0.3.3 (pending)
+==========================
+
+- Add setting for test mode (#60)
+- Add getSampleRateRange (closes #54)
+
 Release 0.3.2 (2021-01-25)
 ==========================
 
