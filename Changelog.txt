@@ -1,4 +1,4 @@
-Release 0.3.3 (pending)
+Release 0.3.3 (2022-06-04)
 ==========================
 
 - Add setting for test mode (#60)

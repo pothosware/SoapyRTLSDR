@@ -1,3 +1,9 @@
+soapyrtlsdr (0.3.3-1) unstable; urgency=low
+
+  * Release 0.3.3 (2022-06-04)
+
+ -- Josh Blum <josh@pothosware.com>  Sat, 04 Jun 2022 08:25:00 -0000
+
 soapyrtlsdr (0.3.2-1) unstable; urgency=low
 
   * Release 0.3.2 (2021-01-25)
