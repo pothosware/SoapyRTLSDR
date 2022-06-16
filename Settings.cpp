@@ -610,6 +610,8 @@ SoapySDR::ArgInfoList SoapyRTLSDR::getSettingInfo(void) const
     testModeArg.description = "RTL-SDR Test Mode";
     testModeArg.type = SoapySDR::ArgInfo::BOOL;
 
+    setArgs.push_back(testModeArg);
+
 #if HAS_RTLSDR_SET_BIAS_TEE
     SoapySDR::ArgInfo biasTeeArg;
 
