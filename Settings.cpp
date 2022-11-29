@@ -79,6 +79,12 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
         gainMin = *std::min_element(gains.begin(), gains.end()) / 10.0;
         gainMax = *std::max_element(gains.begin(), gains.end()) / 10.0;
     }
+
+    // If requested, set initial direct sampling mode
+    if (args.count("direct_samp") != 0)
+    {
+        writeSetting("direct_samp", args.at("direct_samp"));
+    }
 }
 
 SoapyRTLSDR::~SoapyRTLSDR(void)
