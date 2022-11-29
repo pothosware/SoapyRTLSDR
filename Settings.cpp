@@ -400,14 +400,23 @@ SoapySDR::RangeList SoapyRTLSDR::getFrequencyRange(
     SoapySDR::RangeList results;
     if (name == "RF")
     {
-        if (tunerType == RTLSDR_TUNER_E4000) {
-            results.push_back(SoapySDR::Range(52000000, 2200000000));
-        } else if (tunerType == RTLSDR_TUNER_FC0012) {
-            results.push_back(SoapySDR::Range(22000000, 1100000000));
-        } else if (tunerType == RTLSDR_TUNER_FC0013) {
-            results.push_back(SoapySDR::Range(22000000, 948600000));
+        if (directSamplingMode) {
+            uint32_t rtl_freq = 0;
+            if (rtlsdr_get_xtal_freq(dev, &rtl_freq, NULL))
+            {
+                throw std::runtime_error("rtlsdr_get_xtal_freq failed");
+            }
+            results.push_back(SoapySDR::Range(0, rtl_freq));
         } else {
-            results.push_back(SoapySDR::Range(24000000, 1764000000));
+            if (tunerType == RTLSDR_TUNER_E4000) {
+                results.push_back(SoapySDR::Range(52000000, 2200000000));
+            } else if (tunerType == RTLSDR_TUNER_FC0012) {
+                results.push_back(SoapySDR::Range(22000000, 1100000000));
+            } else if (tunerType == RTLSDR_TUNER_FC0013) {
+                results.push_back(SoapySDR::Range(22000000, 948600000));
+            } else {
+                results.push_back(SoapySDR::Range(24000000, 1764000000));
+            }
         }
     }
     if (name == "CORR")
