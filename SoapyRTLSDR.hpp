@@ -247,7 +247,7 @@ private:
     uint32_t sampleRate, centerFrequency, bandwidth;
     int ppm, directSamplingMode;
     size_t numBuffers, bufferLength, asyncBuffs;
-    bool iqSwap, gainMode, offsetMode, digitalAGC, testMode, biasTee;
+    bool iqSwap, gainMode, offsetMode, digitalAGC, testMode, biasTee, dithering;
     double IFGain[6], tunerGain;
     std::atomic<long long> ticks;
 

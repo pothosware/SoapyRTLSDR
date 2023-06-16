@@ -47,6 +47,9 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
 #if HAS_RTLSDR_SET_BIAS_TEE
     biasTee(false),
 #endif
+#if HAS_RTLSDR_SET_DITHERING
+    dithering(true),
+#endif
     ticks(false),
     bufferedElems(0),
     resetBuffer(false),
@@ -624,6 +627,18 @@ SoapySDR::ArgInfoList SoapyRTLSDR::getSettingInfo(void) const
     setArgs.push_back(biasTeeArg);
 #endif
 
+#if HAS_RTLSDR_SET_DITHERING
+    SoapySDR::ArgInfo ditheringArg;
+
+    ditheringArg.key = "dithering";
+    ditheringArg.value = "true";
+    ditheringArg.name = "Dithering";
+    ditheringArg.description = "RTL-SDR Dithering Mode";
+    ditheringArg.type = SoapySDR::ArgInfo::BOOL;
+
+    setArgs.push_back(ditheringArg);
+#endif
+
     SoapySDR_logf(SOAPY_SDR_DEBUG, "SETARGS?");
 
     return setArgs;
@@ -675,6 +690,14 @@ void SoapyRTLSDR::writeSetting(const std::string &key, const std::string &value)
         rtlsdr_set_bias_tee(dev, biasTee ? 1 : 0);
     }
 #endif
+#if HAS_RTLSDR_SET_DITHERING
+    else if (key == "dithering")
+    {
+        dithering = (value == "true") ? true : false;
+        SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR dithering mode: %s", dithering ? "true" : "false");
+        rtlsdr_set_dithering(dev, dithering ? 1 : 0);
+    }
+#endif
 }
 
 std::string SoapyRTLSDR::readSetting(const std::string &key) const
@@ -692,6 +715,10 @@ std::string SoapyRTLSDR::readSetting(const std::string &key) const
 #if HAS_RTLSDR_SET_BIAS_TEE
     } else if (key == "biastee") {
         return biasTee?"true":"false";
+#endif
+#if HAS_RTLSDR_SET_DITHERING
+    } else if (key == "dithering") {
+        return dithering?"true":"false";
 #endif
     }
 
