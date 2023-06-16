@@ -116,7 +116,7 @@ void SoapyRTLSDR::rx_callback(unsigned char *buf, uint32_t len)
     //printf("_rx_callback %d _buf_head=%d, numBuffers=%d\n", len, _buf_head, _buf_tail);
 
     // atomically add len to ticks but return the previous value
-    unsigned long long tick = ticks.fetch_add(len);
+    unsigned long long tick = ticks.fetch_add(len / BYTES_PER_SAMPLE);
 
     //overflow condition: the caller is not reading fast enough
     if (_buf_count == numBuffers)
