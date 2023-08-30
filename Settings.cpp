@@ -398,6 +398,11 @@ SoapySDR::RangeList SoapyRTLSDR::getFrequencyRange(
         const std::string &name) const
 {
     SoapySDR::RangeList results;
+    char manufact[256];
+    char product[256];
+
+    rtlsdr_get_usb_strings(dev, manufact, product, NULL);
+
     if (name == "RF")
     {
         if (tunerType == RTLSDR_TUNER_E4000) {
@@ -406,6 +411,8 @@ SoapySDR::RangeList SoapyRTLSDR::getFrequencyRange(
             results.push_back(SoapySDR::Range(22000000, 1100000000));
         } else if (tunerType == RTLSDR_TUNER_FC0013) {
             results.push_back(SoapySDR::Range(22000000, 948600000));
+        } else if (tunerType == RTLSDR_TUNER_R828D && strcmp(manufact, "RTLSDRBlog") == 0 && strcmp(product, "Blog V4") == 0) {
+            results.push_back(SoapySDR::Range(0, 1764000000));
         } else {
             results.push_back(SoapySDR::Range(24000000, 1764000000));
         }
