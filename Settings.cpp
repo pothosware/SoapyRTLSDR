@@ -398,8 +398,8 @@ SoapySDR::RangeList SoapyRTLSDR::getFrequencyRange(
         const std::string &name) const
 {
     SoapySDR::RangeList results;
-    char manufact[256];
-    char product[256];
+    char manufact[256] = {0};
+    char product[256] = {0};
 
     rtlsdr_get_usb_strings(dev, manufact, product, NULL);
 
