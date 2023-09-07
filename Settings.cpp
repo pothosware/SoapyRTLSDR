@@ -26,6 +26,7 @@
 #include "SoapyRTLSDR.hpp"
 #include <SoapySDR/Time.hpp>
 #include <algorithm>
+#include <cstring>
 
 SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
     deviceId(-1),
