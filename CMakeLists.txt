@@ -51,13 +51,17 @@ if (APPLE)
    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wc++11-extensions")
 endif(APPLE)
 
-# check if rtlsdr library includes support for bias-tee
+# check if rtlsdr library includes support for bias-tee and dithering
 include(CheckFunctionExists)
 set(CMAKE_REQUIRED_LIBRARIES ${RTLSDR_LIBRARIES})
 check_function_exists(rtlsdr_set_bias_tee HAS_RTLSDR_SET_BIAS_TEE)
+check_function_exists(rtlsdr_set_dithering HAS_RTLSDR_SET_DITHERING)
 unset(CMAKE_REQUIRED_LIBRARIES)
 if (HAS_RTLSDR_SET_BIAS_TEE)
     add_definitions(-DHAS_RTLSDR_SET_BIAS_TEE)
+endif()
+if (HAS_RTLSDR_SET_DITHERING)
+    add_definitions(-DHAS_RTLSDR_SET_DITHERING)
 endif()
 
 set(OTHER_LIBS "" CACHE STRING "Other libraries")
