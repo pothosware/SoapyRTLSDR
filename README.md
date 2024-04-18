@@ -1,9 +1,5 @@
 # Soapy SDR module for RTL-SDR
 
-## Build Status
-
-- Travis: [![Travis Build Status](https://travis-ci.org/pothosware/SoapyRTLSDR.svg?branch=master)](https://travis-ci.org/pothosware/SoapyRTLSDR)
-
 ## Dependencies
 
 * SoapySDR - https://github.com/pothosware/SoapySDR/wiki
