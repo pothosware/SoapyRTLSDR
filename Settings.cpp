@@ -51,6 +51,7 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
 #if HAS_RTLSDR_SET_DITHERING
     dithering(true),
 #endif
+    tunerGain(0.0),
     ticks(false),
     bufferedElems(0),
     resetBuffer(false),
