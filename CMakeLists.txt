@@ -1,7 +1,7 @@
 ########################################################################
 # Build Soapy SDR support module for RTL-SDR Devices
 ########################################################################
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 2.8.12...3.10)
 project(SoapyRTLSDR CXX)
 
 find_package(SoapySDR "0.4.0" NO_MODULE REQUIRED)
