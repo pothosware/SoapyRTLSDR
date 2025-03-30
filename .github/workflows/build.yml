@@ -9,7 +9,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12, macos-14]
+        # https://github.com/melusina-org/setup-macports/issues/2
+        os: [macos-13, macos-14]
     runs-on: ${{ matrix.os }}
     name: Build on ${{ matrix.os }} (macports)
     steps:
@@ -26,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12, macos-14]
+        os: [macos-13, macos-14, macos-15]
     runs-on: ${{ matrix.os }}
     name: Build on ${{ matrix.os }} (homebrew)
     steps:
@@ -42,7 +43,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04]
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-24.04]
     runs-on: ${{ matrix.os }}
     name: Build on ${{ matrix.os }}
     steps:
