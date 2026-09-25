@@ -27,6 +27,7 @@
 #include <SoapySDR/Time.hpp>
 #include <algorithm>
 #include <cstring>
+#include <limits>
 
 SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
     deviceId(-1),
@@ -60,20 +61,50 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
 {
     if (args.count("label") != 0) SoapySDR_logf(SOAPY_SDR_INFO, "Opening %s...", args.at("label").c_str());
 
-    //if a serial is not present, then findRTLSDR had zero devices enumerated
-    if (args.count("serial") == 0) throw std::runtime_error("No RTL-SDR devices found!");
+    // Prefer the enumerated USB index on every platform so receivers with
+    // duplicate or empty serial descriptors can still be selected uniquely.
+    // Retain serial lookup for compatibility with existing configurations.
+    if (args.count("index") != 0)
+    {
+        const auto index = args.at("index");
+        size_t parsedCharacters = 0;
+        unsigned long parsedIndex = 0;
+        try
+        {
+            parsedIndex = std::stoul(index, &parsedCharacters);
+        }
+        catch (const std::exception &)
+        {
+            throw std::runtime_error("Invalid RTL-SDR device index: " + index);
+        }
 
-    const auto serial = args.at("serial");
-    deviceId = rtlsdr_get_index_by_serial(serial.c_str());
-    if (deviceId < 0) throw std::runtime_error("rtlsdr_get_index_by_serial("+serial+") - " + std::to_string(deviceId));
+        if (parsedCharacters != index.size() ||
+            parsedIndex > std::numeric_limits<int>::max() ||
+            parsedIndex >= rtlsdr_get_device_count())
+        {
+            throw std::runtime_error("Invalid RTL-SDR device index: " + index);
+        }
+        deviceId = static_cast<int>(parsedIndex);
+    }
+    else if (args.count("serial") != 0)
+    {
+        const auto serial = args.at("serial");
+        deviceId = rtlsdr_get_index_by_serial(serial.c_str());
+        if (deviceId < 0) throw std::runtime_error("rtlsdr_get_index_by_serial("+serial+") - " + std::to_string(deviceId));
+    }
+    else
+    {
+        throw std::runtime_error("No RTL-SDR device index or serial specified!");
+    }
 
     if (args.count("tuner") != 0) tunerType = rtlStringToTuner(args.at("tuner"));
-    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Tuner type: %s", rtlTunerToString(tunerType).c_str());
 
     SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR opening device %d", deviceId);
     if (rtlsdr_open(&dev, deviceId) != 0) {
         throw std::runtime_error("Unable to open RTL-SDR device");
     }
+    tunerType = rtlsdr_get_tuner_type(dev);
+    SoapySDR_logf(SOAPY_SDR_DEBUG, "RTL-SDR Tuner type: %s", rtlTunerToString(tunerType).c_str());
 
     //extract min/max overall gain range
     int num_gains = rtlsdr_get_tuner_gains(dev, nullptr);
@@ -847,4 +878,3 @@ rtlsdr_tuner SoapyRTLSDR::rtlStringToTuner(std::string tunerType)
 
     return deviceTuner;
 }
-
