@@ -9,12 +9,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # https://github.com/melusina-org/setup-macports/issues/2
-        os: [macos-14]
+        os: [macos-15, macos-26]
     runs-on: ${{ matrix.os }}
     name: Build on ${{ matrix.os }} (macports)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: melusina-org/setup-macports@v1
       - name: Install ports
         run: port install SoapySDR rtl-sdr
@@ -27,11 +26,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-15]
+        os: [macos-15, macos-26]
     runs-on: ${{ matrix.os }}
     name: Build on ${{ matrix.os }} (homebrew)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Setup tools
         run: brew install soapysdr librtlsdr
       - name: Configure
@@ -47,7 +46,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Build on ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Setup tools
         run: |
           sudo apt-get update -q -y
