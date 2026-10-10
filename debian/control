@@ -1,10 +1,9 @@
 Source: soapyrtlsdr
 Section: hamradio
 Priority: optional
-Maintainer: Charles J. Cliffe <cj@cubicproductions.com>
-Uploaders: Josh Blum <josh@pothosware.com>
+Maintainer: Christian W. Zuckschwerdt <zany@triq.net>
 Build-Depends:
-    debhelper (>= 9.0.0),
+    debhelper,
     cmake,
     libsoapysdr-dev,
     librtlsdr-dev
@@ -13,7 +12,7 @@ Homepage: https://github.com/pothosware/SoapyRTLSDR/wiki
 Vcs-Git: https://github.com/pothosware/SoapyRTLSDR.git
 Vcs-Browser: https://github.com/pothosware/SoapyRTLSDR
 
-Package: soapysdr0.7-module-rtlsdr
+Package: soapysdr0.9-module-rtlsdr
 Architecture: any
 Multi-Arch: same
 Depends: ${shlibs:Depends}, ${misc:Depends}
@@ -25,7 +24,7 @@ Description: RTL-SDR device support for SoapySDR
 
 Package: soapysdr-module-rtlsdr
 Architecture: all
-Depends: soapysdr0.7-module-rtlsdr, ${misc:Depends}
+Depends: soapysdr0.9-module-rtlsdr, ${misc:Depends}
 Description: RTL-SDR device support for SoapySDR (default version)
  The Soapy RTL-SDR project provides a SoapySDR hardware support module.
  Using this, any program using SoapySDR to interface to software
