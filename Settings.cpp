@@ -36,6 +36,7 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
     sampleRate(2048000),
     centerFrequency(100000000),
     bandwidth(0),
+    rtlXtalFreq(0),
     ppm(0),
     directSamplingMode(0),
     numBuffers(DEFAULT_NUM_BUFFERS),
@@ -74,6 +75,16 @@ SoapyRTLSDR::SoapyRTLSDR(const SoapySDR::Kwargs &args):
     if (rtlsdr_open(&dev, deviceId) != 0) {
         throw std::runtime_error("Unable to open RTL-SDR device");
     }
+
+    //Cache the RTL clock for direct-sampling ranges; the xtal never changes.
+    //A failed query degrades to the near-universal 28.8 MHz, never an error:
+    //range reporting must not throw.
+    uint32_t xtal = 0;
+    if (rtlsdr_get_xtal_freq(dev, &xtal, NULL) != 0 || xtal == 0) {
+        SoapySDR_logf(SOAPY_SDR_WARNING, "rtlsdr_get_xtal_freq failed, assuming 28.8 MHz");
+        xtal = 28800000;
+    }
+    rtlXtalFreq = xtal;
 
     //extract min/max overall gain range
     int num_gains = rtlsdr_get_tuner_gains(dev, nullptr);
@@ -403,23 +414,39 @@ SoapySDR::RangeList SoapyRTLSDR::getFrequencyRange(
         const std::string &name) const
 {
     SoapySDR::RangeList results;
-    char manufact[256] = {0};
-    char product[256] = {0};
-
-    // Get manufact and product USB strings to detect RTL-SDR Blog V4 model
-    rtlsdr_get_usb_strings(dev, manufact, product, NULL);
 
     if (name == "RF")
     {
-        if (tunerType == RTLSDR_TUNER_E4000) {
-            results.push_back(SoapySDR::Range(52000000, 2200000000));
-        } else if (tunerType == RTLSDR_TUNER_FC0012) {
-            results.push_back(SoapySDR::Range(22000000, 1100000000));
-        } else if (tunerType == RTLSDR_TUNER_FC0013) {
-            results.push_back(SoapySDR::Range(22000000, 948600000));
-        // The RTL-SDR Blog V4 can tune down to 0 MHz (in reality ~300 kHz) because of the built in upconverter.
-        } else if (tunerType == RTLSDR_TUNER_R828D && strcmp(manufact, "RTLSDRBlog") == 0 && strcmp(product, "Blog V4") == 0) {
+        //Forced direct sampling tunes the demod NCO: 0 to the RTL clock.
+        if (directSamplingMode != 0)
+        {
+            results.push_back(SoapySDR::Range(0, rtlXtalFreq));
+            return results;
+        }
+
+        //Live tuner type: the member defaults unless the enumerator passed it.
+        const rtlsdr_tuner tuner = rtlsdr_get_tuner_type(dev);
+
+        //Get manufact and product USB strings to detect RTL-SDR Blog V4 models
+        char manufact[256] = {0};
+        char product[256] = {0};
+        rtlsdr_get_usb_strings(dev, manufact, product, NULL);
+        const bool blogV4 = (strcmp(manufact, "RTLSDRBlog") == 0) &&
+            (strcmp(product, "Blog V4") == 0 || strcmp(product, "Blog V4L") == 0);
+
+        //The RTL-SDR Blog V4/V4L can tune down to 0 MHz (in reality ~300 kHz)
+        //because of the built in upconverter.
+        if (blogV4) {
             results.push_back(SoapySDR::Range(0, 1764000000));
+        //librtlsdr auto-switches R820T to Q-ADC direct sampling below 24 MHz.
+        } else if (tuner == RTLSDR_TUNER_R820T) {
+            results.push_back(SoapySDR::Range(0, 1764000000));
+        } else if (tuner == RTLSDR_TUNER_E4000) {
+            results.push_back(SoapySDR::Range(52000000, 2200000000));
+        } else if (tuner == RTLSDR_TUNER_FC0012) {
+            results.push_back(SoapySDR::Range(22000000, 1100000000));
+        } else if (tuner == RTLSDR_TUNER_FC0013) {
+            results.push_back(SoapySDR::Range(22000000, 948600000));
         } else {
             results.push_back(SoapySDR::Range(24000000, 1764000000));
         }
@@ -576,10 +603,10 @@ SoapySDR::ArgInfoList SoapyRTLSDR::getSettingInfo(void) const
     directSampArg.key = "direct_samp";
     directSampArg.value = "0";
     directSampArg.name = "Direct Sampling";
-    directSampArg.description = "RTL-SDR Direct Sampling Mode";
+    directSampArg.description = "RTL-SDR Direct Sampling Mode (Auto uses Q-ADC below 24 MHz on R820T)";
     directSampArg.type = SoapySDR::ArgInfo::STRING;
     directSampArg.options.push_back("0");
-    directSampArg.optionNames.push_back("Off");
+    directSampArg.optionNames.push_back("Auto");
     directSampArg.options.push_back("1");
     directSampArg.optionNames.push_back("I-ADC");
     directSampArg.options.push_back("2");

@@ -245,6 +245,7 @@ private:
     rtlsdrRXFormat rxFormat;
     rtlsdr_tuner tunerType;
     uint32_t sampleRate, centerFrequency, bandwidth;
+    uint32_t rtlXtalFreq;
     int ppm, directSamplingMode;
     size_t numBuffers, bufferLength, asyncBuffs;
     bool iqSwap, gainMode, offsetMode, digitalAGC, testMode, biasTee, dithering;
